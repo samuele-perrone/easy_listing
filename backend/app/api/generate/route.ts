@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const note = notes?.join(' ').trim();
     const { output } = await generateText({
-      model: 'anthropic/claude-sonnet-5',
+      model: process.env.GENERATION_MODEL ?? 'anthropic/claude-sonnet-5',
       output: Output.object({ schema: generateResultSchema }),
       system: SYSTEM_PROMPT,
       messages: [
