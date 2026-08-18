@@ -15,6 +15,13 @@ Photograph an item once, get ready-to-post listings for **eBay, Vinted, Gumtree 
 
 eBay is the only one of the four with a public seller API. Vinted, Gumtree and FB Marketplace don't offer one (and automating them violates their ToS), so for those the app generates every form field and you tap-to-copy each into the platform's own app. The app warns you before anything is published, and eBay publishing always shows an explicit "this goes live" confirmation.
 
+## Deployment
+
+The backend is deployed on Vercel as project **easy-listing** (root directory `backend/`):
+**https://easy-listing-chi.vercel.app** — pushes to `main` auto-deploy to production via the Vercel GitHub integration. A public Blob store (`easy-listing-photos`) is attached for eBay listing photos, and the AI Gateway authenticates automatically on Vercel.
+
+Still needed as env vars (`vercel env add <NAME> production`): `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RU_NAME`, and `EBAY_ENV=production` when moving off sandbox.
+
 ## Setup
 
 1. **Backend**: `cd backend && npm install && cp .env.example .env.local`, fill in the env vars (see comments in the file), `npm run dev`.

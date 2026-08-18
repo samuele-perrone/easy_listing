@@ -11,7 +11,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("https://easy-listing.vercel.app", text: $backendURL)
+                    TextField("https://easy-listing-chi.vercel.app", text: $backendURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()

@@ -2,3 +2,5 @@
 ios/EasyListing.xcodeproj/
 ios/build/
 ios/DerivedData/
+.vercel
+.env*

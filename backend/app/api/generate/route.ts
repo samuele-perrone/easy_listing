@@ -36,7 +36,11 @@ export async function POST(request: Request) {
         {
           role: 'user',
           content: [
-            ...images.slice(0, 12).map((image) => ({ type: 'image' as const, image })),
+            ...images.slice(0, 12).map((image) => ({
+              type: 'file' as const,
+              mediaType: 'image/jpeg',
+              data: image,
+            })),
             {
               type: 'text' as const,
               text: note
