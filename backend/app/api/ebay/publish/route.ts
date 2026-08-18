@@ -1,0 +1,29 @@
+import { EBAY, listingViewURL } from '@/lib/ebay';
+
+export const maxDuration = 300;
+
+// Publishes a previously created (draft) offer.
+export async function POST(request: Request) {
+  try {
+    const { accessToken, offerId } = (await request.json()) as { accessToken?: string; offerId?: string };
+    if (!accessToken || !offerId) {
+      return Response.json({ error: 'Missing accessToken or offerId.' }, { status: 400 });
+    }
+    const response = await fetch(`${EBAY.apiHost}/sell/inventory/v1/offer/${offerId}/publish`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Content-Language': 'en-GB',
+        'X-EBAY-C-MARKETPLACE-ID': EBAY.marketplaceId,
+      },
+    });
+    if (!response.ok) throw new Error(`Publishing offer failed: ${await response.text()}`);
+    const { listingId } = await response.json();
+    return Response.json({ listingId, viewURL: listingViewURL(listingId) });
+  } catch (error) {
+    console.error('ebay publish failed', error);
+    const message = error instanceof Error ? error.message : 'Publishing to eBay failed.';
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
