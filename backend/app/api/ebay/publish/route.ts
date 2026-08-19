@@ -1,4 +1,4 @@
-import { EBAY, listingViewURL } from '@/lib/ebay';
+import { EBAY, ebayHeaders, listingViewURL } from '@/lib/ebay';
 
 export const maxDuration = 300;
 
@@ -11,12 +11,7 @@ export async function POST(request: Request) {
     }
     const response = await fetch(`${EBAY.apiHost}/sell/inventory/v1/offer/${offerId}/publish`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Content-Language': 'en-GB',
-        'X-EBAY-C-MARKETPLACE-ID': EBAY.marketplaceId,
-      },
+      headers: ebayHeaders(accessToken),
     });
     if (!response.ok) throw new Error(`Publishing offer failed: ${await response.text()}`);
     const { listingId } = await response.json();

@@ -62,14 +62,41 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenSet
   return response.json();
 }
 
+// Marketplace ID → the language tag eBay expects for that site.
+const MARKETPLACE_LANGUAGES: Record<string, string> = {
+  EBAY_GB: 'en-GB',
+  EBAY_US: 'en-US',
+  EBAY_AU: 'en-AU',
+  EBAY_CA: 'en-CA',
+  EBAY_IE: 'en-IE',
+  EBAY_DE: 'de-DE',
+  EBAY_FR: 'fr-FR',
+  EBAY_IT: 'it-IT',
+  EBAY_ES: 'es-ES',
+};
+
+export function ebayLanguage() {
+  return MARKETPLACE_LANGUAGES[EBAY.marketplaceId] ?? 'en-GB';
+}
+
+export function ebayHeaders(accessToken: string): Record<string, string> {
+  const language = ebayLanguage();
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    'Content-Language': language,
+    // Must be set explicitly: undici defaults to `*`, which eBay rejects (error 25709).
+    'Accept-Language': language,
+    Accept: 'application/json',
+    'X-EBAY-C-MARKETPLACE-ID': EBAY.marketplaceId,
+  };
+}
+
 async function ebayFetch(path: string, accessToken: string, init: RequestInit = {}) {
   const response = await fetch(`${EBAY.apiHost}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Content-Language': 'en-GB',
-      'X-EBAY-C-MARKETPLACE-ID': EBAY.marketplaceId,
+      ...ebayHeaders(accessToken),
       ...init.headers,
     },
   });
