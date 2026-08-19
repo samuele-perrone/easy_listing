@@ -108,8 +108,24 @@ const MARKETPLACE_LANGUAGES: Record<string, string> = {
   EBAY_ES: 'es-ES',
 };
 
+const MARKETPLACE_COUNTRIES: Record<string, string> = {
+  EBAY_GB: 'GB',
+  EBAY_US: 'US',
+  EBAY_AU: 'AU',
+  EBAY_CA: 'CA',
+  EBAY_IE: 'IE',
+  EBAY_DE: 'DE',
+  EBAY_FR: 'FR',
+  EBAY_IT: 'IT',
+  EBAY_ES: 'ES',
+};
+
 export function ebayLanguage() {
   return MARKETPLACE_LANGUAGES[EBAY.marketplaceId] ?? 'en-GB';
+}
+
+export function ebayCountry() {
+  return MARKETPLACE_COUNTRIES[EBAY.marketplaceId] ?? 'GB';
 }
 
 export function ebayHeaders(accessToken: string): Record<string, string> {
@@ -184,6 +200,44 @@ export async function ensureBusinessPoliciesOptIn(accessToken: string): Promise<
       );
     }
   }
+}
+
+/**
+ * An offer can only be published once eBay knows where the item ships from.
+ * Reuses the seller's existing location if they have one.
+ */
+export async function ensureInventoryLocation(accessToken: string): Promise<string> {
+  const existing = await ebayFetch('/sell/inventory/v1/location?limit=1', accessToken);
+  if (existing.ok) {
+    const data = await existing.json();
+    const key = data.locations?.[0]?.merchantLocationKey;
+    if (key) return key;
+  }
+
+  const key = 'easylisting-default';
+  const postalCode = process.env.EBAY_LOCATION_POSTCODE;
+  const created = await ebayFetch(`/sell/inventory/v1/location/${key}`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({
+      location: {
+        address: {
+          country: ebayCountry(),
+          ...(postalCode ? { postalCode } : {}),
+        },
+      },
+      name: 'Easy Listing',
+      merchantLocationStatus: 'ENABLED',
+      locationTypes: ['WAREHOUSE'],
+    }),
+  });
+
+  if (!created.ok) {
+    const detail = await created.text();
+    if (!detail.includes('already exists')) {
+      throw new Error(`Creating an item location failed: ${detail}`);
+    }
+  }
+  return key;
 }
 
 /** Returns the seller's first fulfillment/payment/return policy IDs (they must exist on the account). */
@@ -267,6 +321,7 @@ export async function createListing(
 
   const categoryId = await suggestCategoryId(accessToken, draft.categoryQuery);
   const policies = await getSellerPolicies(accessToken);
+  const merchantLocationKey = await ensureInventoryLocation(accessToken);
 
   const offerResponse = await ebayFetch('/sell/inventory/v1/offer', accessToken, {
     method: 'POST',
@@ -277,6 +332,7 @@ export async function createListing(
       listingDescription: draft.description,
       availableQuantity: 1,
       categoryId,
+      merchantLocationKey,
       listingPolicies: policies,
       pricingSummary: {
         price: { value: draft.price.toFixed(2), currency: draft.currency },
