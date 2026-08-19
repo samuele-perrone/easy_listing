@@ -158,8 +158,38 @@ export async function suggestCategoryId(_userToken: string, query: string): Prom
   return suggestion;
 }
 
+/**
+ * The Inventory API can only create listings for sellers enrolled in eBay's
+ * Business Policies programme, so enrol the account if it isn't already.
+ */
+export async function ensureBusinessPoliciesOptIn(accessToken: string): Promise<void> {
+  const status = await ebayFetch('/sell/account/v1/program/get_opted_in_programs', accessToken);
+  if (status.ok) {
+    const data = await status.json();
+    const programs: string[] = (data.programs ?? []).map((p: { programType: string }) => p.programType);
+    if (programs.includes('SELLING_POLICY_MANAGEMENT')) return;
+  }
+
+  const optIn = await ebayFetch('/sell/account/v1/program/opt_in', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ programType: 'SELLING_POLICY_MANAGEMENT' }),
+  });
+  if (!optIn.ok) {
+    const detail = await optIn.text();
+    // Already enrolled is reported as an error; anything else is a real failure.
+    if (!detail.includes('already opted in')) {
+      throw new Error(
+        `Could not enrol your eBay account in Business Policies: ${detail}. ` +
+          `You may need to set them up manually in eBay Seller Hub → Account → Business policies.`,
+      );
+    }
+  }
+}
+
 /** Returns the seller's first fulfillment/payment/return policy IDs (they must exist on the account). */
 export async function getSellerPolicies(accessToken: string) {
+  await ensureBusinessPoliciesOptIn(accessToken);
+
   const kinds = [
     ['fulfillment_policy', 'fulfillmentPolicies', 'fulfillmentPolicyId'],
     ['payment_policy', 'paymentPolicies', 'paymentPolicyId'],
