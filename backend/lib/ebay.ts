@@ -45,6 +45,39 @@ export async function exchangeCodeForTokens(code: string): Promise<TokenSet> {
   return response.json();
 }
 
+let cachedAppToken: { token: string; expiresAt: number } | null = null;
+
+/**
+ * An application token (client credentials grant). The Taxonomy API serves public
+ * category data and needs eBay's base scope, which the seller's own token doesn't
+ * carry — so mint one from the app credentials rather than re-prompting the seller.
+ */
+export async function getApplicationToken(): Promise<string> {
+  if (cachedAppToken && Date.now() < cachedAppToken.expiresAt) {
+    return cachedAppToken.token;
+  }
+
+  const response = await fetch(`${EBAY.apiHost}/identity/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: basicAuth(),
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      scope: 'https://api.ebay.com/oauth/api_scope',
+    }),
+  });
+  if (!response.ok) throw new Error(`eBay application token failed: ${await response.text()}`);
+
+  const tokens = (await response.json()) as TokenSet;
+  cachedAppToken = {
+    token: tokens.access_token,
+    expiresAt: Date.now() + (tokens.expires_in - 300) * 1000,
+  };
+  return tokens.access_token;
+}
+
 export async function refreshAccessToken(refreshToken: string): Promise<TokenSet> {
   const response = await fetch(`${EBAY.apiHost}/identity/v1/oauth2/token`, {
     method: 'POST',
@@ -104,7 +137,9 @@ async function ebayFetch(path: string, accessToken: string, init: RequestInit = 
 }
 
 /** Finds the best category ID for a search phrase via the Taxonomy API. */
-export async function suggestCategoryId(accessToken: string, query: string): Promise<string> {
+export async function suggestCategoryId(_userToken: string, query: string): Promise<string> {
+  const accessToken = await getApplicationToken();
+
   const treeResponse = await ebayFetch(
     `/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=${EBAY.marketplaceId}`,
     accessToken,
@@ -171,19 +206,34 @@ export async function createListing(
 ): Promise<{ offerId: string; listingId?: string }> {
   const sku = `easylisting-${Date.now()}`;
 
-  const itemResponse = await ebayFetch(`/sell/inventory/v1/inventory_item/${sku}`, accessToken, {
+  const inventoryItem = {
+    availability: { shipToLocationAvailability: { quantity: 1 } },
+    condition: draft.condition,
+    product: {
+      title: draft.title.slice(0, 80),
+      description: draft.description,
+      imageUrls: imageUrls.slice(0, 12),
+    },
+  };
+  console.log('eBay inventory item request', sku, JSON.stringify(inventoryItem));
+
+  // eBay's Inventory service returns a generic 25001 for transient faults, so retry once.
+  let itemResponse = await ebayFetch(`/sell/inventory/v1/inventory_item/${sku}`, accessToken, {
     method: 'PUT',
-    body: JSON.stringify({
-      availability: { shipToLocationAvailability: { quantity: 1 } },
-      condition: draft.condition,
-      product: {
-        title: draft.title,
-        description: draft.description,
-        imageUrls,
-      },
-    }),
+    body: JSON.stringify(inventoryItem),
   });
-  if (!itemResponse.ok) throw new Error(`Creating inventory item failed: ${await itemResponse.text()}`);
+  if (!itemResponse.ok) {
+    const firstError = await itemResponse.text();
+    console.log('eBay inventory item attempt 1 failed', itemResponse.status, firstError);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    itemResponse = await ebayFetch(`/sell/inventory/v1/inventory_item/${sku}`, accessToken, {
+      method: 'PUT',
+      body: JSON.stringify(inventoryItem),
+    });
+    if (!itemResponse.ok) {
+      throw new Error(`Creating inventory item failed: ${await itemResponse.text()}`);
+    }
+  }
 
   const categoryId = await suggestCategoryId(accessToken, draft.categoryQuery);
   const policies = await getSellerPolicies(accessToken);
