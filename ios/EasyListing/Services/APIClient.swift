@@ -3,9 +3,12 @@ import UIKit
 
 /// Client for the Easy Listing backend (Next.js on Vercel).
 struct APIClient {
+    /// The deployed backend. Overridable in Settings for local development.
+    static let defaultBaseURL = "https://easy-listing-chi.vercel.app"
+
     static var baseURL: URL {
         let stored = UserDefaults.standard.string(forKey: "backendURL") ?? ""
-        return URL(string: stored.isEmpty ? "http://localhost:3000" : stored)!
+        return URL(string: stored.isEmpty ? defaultBaseURL : stored) ?? URL(string: defaultBaseURL)!
     }
 
     struct GenerateResponse: Codable {
@@ -24,9 +27,31 @@ struct APIClient {
         var errorDescription: String? { message }
     }
 
+    /// Encodes photos as base64 JPEGs small enough for the server to accept, stepping
+    /// down resolution and quality until they fit. Vercel rejects bodies over 4.5 MB,
+    /// so the budget leaves headroom for the surrounding JSON.
+    private static func encodedImages(from photos: [UIImage], maxDimension: CGFloat, quality: CGFloat) -> [String] {
+        let budget = 3_000_000
+        var dimension = maxDimension
+        var quality = quality
+
+        for _ in 0..<4 {
+            let encoded = photos.compactMap {
+                $0.resized(maxDimension: dimension).jpegData(compressionQuality: quality)?.base64EncodedString()
+            }
+            if encoded.reduce(0, { $0 + $1.count }) <= budget { return encoded }
+            dimension *= 0.75
+            quality = max(0.4, quality - 0.1)
+        }
+
+        return photos.prefix(4).compactMap {
+            $0.resized(maxDimension: dimension).jpegData(compressionQuality: quality)?.base64EncodedString()
+        }
+    }
+
     /// Sends the item photos (+ optional notes) and gets back per-platform listing fields.
     static func generateListings(photos: [UIImage], notes: String) async throws -> GenerateResponse {
-        let images = photos.compactMap { $0.resized(maxDimension: 1200).jpegData(compressionQuality: 0.7)?.base64EncodedString() }
+        let images = encodedImages(from: photos, maxDimension: 1100, quality: 0.6)
         guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
 
         var request = URLRequest(url: baseURL.appending(path: "/api/generate"))
@@ -58,7 +83,7 @@ struct APIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 180
-        let images = photos.compactMap { UIImage(data: $0)?.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8)?.base64EncodedString() }
+        let images = encodedImages(from: photos.compactMap { UIImage(data: $0) }, maxDimension: 1400, quality: 0.7)
         request.httpBody = try JSONEncoder().encode(Body(accessToken: accessToken, publish: publish, draft: draft, images: images))
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -96,8 +121,13 @@ struct APIClient {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             struct ErrBody: Codable { var error: String? }
-            let serverMessage = (try? JSONDecoder().decode(ErrBody.self, from: data))?.error
-            throw APIError(message: serverMessage ?? "Server error (HTTP \(status)).")
+            if let serverMessage = (try? JSONDecoder().decode(ErrBody.self, from: data))?.error {
+                throw APIError(message: serverMessage)
+            }
+            if status == 413 {
+                throw APIError(message: "Those photos are too large to upload. Try again with fewer photos.")
+            }
+            throw APIError(message: "Server error (HTTP \(status)).")
         }
     }
 }
