@@ -1,0 +1,74 @@
+# Status — as of 22 August 2026
+
+Where the project stands, what's left, and the non-obvious things already solved.
+
+---
+
+## Working end to end
+
+- **Listing generation.** Photos + optional notes → complete field sets for eBay, Vinted, Gumtree and FB Marketplace. Verified against the live backend. Output respects each platform's own vocabulary (eBay condition enums, Vinted's "Very good" scale, FB's "Used - like new") and inserts `[CHECK: ...]` placeholders rather than inventing details it can't see.
+- **iOS app.** Installed and running on a physical iPhone 17 Pro. Camera and library import, history via SwiftData, per-platform tap-to-copy cards, deep links into the other marketplaces' apps.
+- **eBay OAuth.** Connects, stores tokens in the Keychain, refreshes them.
+- **eBay draft creation.** A real draft was created on the production account and appeared in Seller Hub.
+
+## Not finished
+
+- **Publishing a draft has never succeeded.** The last attempt failed because the offer had no merchant location. That is now fixed in `ensureInventoryLocation()`, but **the fix applies when an offer is created**, so the draft that already exists on eBay predates it. Next step: create a *fresh* draft, then publish that one.
+- **`EBAY_LOCATION_POSTCODE` is unset.** If eBay rejects the item location without a postcode, set it: `vercel env add EBAY_LOCATION_POSTCODE production`.
+- **No tests.** Everything so far has been verified by hand against live services.
+
+---
+
+## Decisions worth remembering
+
+**Only eBay gets API posting.** Vinted, Gumtree and FB Marketplace have no public seller API, and automating them violates their terms and risks account bans. The deliberate design is: generate every field, then a guided copy-paste flow. This was chosen explicitly, not by omission.
+
+**Model provider is resolved at runtime** in `backend/app/api/generate/route.ts`, in this order: `ANTHROPIC_API_KEY` → `GOOGLE_GENERATIVE_AI_API_KEY` → Vercel AI Gateway. The gateway was the original design but its free tier blocks *every* model, including ones tagged free — hence the direct-provider fallbacks.
+
+**eBay tokens live only on the device**, in the iOS Keychain. The server never persists them; the app sends the access token with each request. This is also what the privacy policy claims, so keep it true.
+
+**Photos are budgeted before upload.** Vercel rejects request bodies over 4.5 MB (measured: 4 MB passes, 4.5 MB returns 413). `APIClient.encodedImages` steps resolution and quality down until the encoded set fits in 3 MB.
+
+---
+
+## eBay gotchas already solved
+
+Each of these cost a debugging round trip. They are all fixed, but the reasoning is worth keeping.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Keyset disabled, no RuName anywhere | eBay disables production keysets until you implement their account-deletion webhook | `app/api/ebay/deletion/route.ts` — GET returns `sha256(challengeCode + verificationToken + endpointURL)` |
+| `25709 Invalid value for header Accept-Language` | Node's `fetch` sends `accept-language: *` by default, which eBay rejects. We never set the header. | `ebayHeaders()` sets it explicitly from the marketplace |
+| `25001 Core Inventory Service internal error` | Transient eBay fault | Retry once after 1.5s |
+| `1100 Insufficient permissions` on taxonomy | The Taxonomy API needs eBay's **base** scope, which the seller token doesn't carry | Mint a client-credentials application token instead of re-prompting the seller |
+| `20403 User is not eligible for Business Policy` | Account not enrolled in the Business Policies programme | `ensureBusinessPoliciesOptIn()` enrols via the Account API |
+| `No <Item.Country>` when publishing | The offer has no merchant location | `ensureInventoryLocation()`, attached as `merchantLocationKey` |
+
+Two eBay-side setup steps that are done and shouldn't need repeating: the seller account is **enrolled in Business Policies**, and **one policy of each type** (postage, payment, returns) exists.
+
+---
+
+## Environment traps
+
+- **Deploy from the repo root**, never from `backend/`. Vercel's configured root directory is already `backend`, so deploying from inside it creates a stray project named `backend`. This happened twice; both were deleted.
+- **Vercel returns `[SENSITIVE]` placeholders** for sensitive env vars, so `vercel env pull` can't be used to test with real credentials locally.
+- **Env changes need a redeploy**, and the deploy must be created *after* the change. One redeploy raced an env update and silently used the old value.
+- **`vercel project rm` is interactive** and ignores `--yes`. Piping `yes |` into it loops forever — use the REST API to delete a project.
+
+## iOS build notes
+
+- **Signing:** team `7RYYQ8M5X5`, set as `DEVELOPMENT_TEAM` in `ios/project.yml`.
+- **Installs fail while the phone is locked** (`kAMDMobileImageMounterDeviceLocked`). Unlock first; disabling auto-lock helps.
+- **First launch needs the certificate trusted** at Settings → General → VPN & Device Management.
+- **Free personal signing expires after 7 days.** When the app stops opening, rebuild and reinstall — history survives, since SwiftData is on-device.
+- `EasyListing.xcodeproj` is gitignored; run `xcodegen generate` after cloning.
+
+---
+
+## Ideas not yet built
+
+- Editing generated fields before posting — currently they're read-only.
+- Bulk mode: several items in one session.
+- Price research: check eBay sold listings for a realistic figure rather than the model's estimate.
+- Marking an item as sold, and tracking which platform sold it.
+- Tests around `lib/ebay.ts` — the error paths are intricate and all hand-verified so far.
