@@ -207,15 +207,36 @@ export async function ensureBusinessPoliciesOptIn(accessToken: string): Promise<
  * Reuses the seller's existing location if they have one.
  */
 export async function ensureInventoryLocation(accessToken: string): Promise<string> {
+  const postalCode = process.env.EBAY_LOCATION_POSTCODE;
+
   const existing = await ebayFetch('/sell/inventory/v1/location?limit=1', accessToken);
   if (existing.ok) {
     const data = await existing.json();
-    const key = data.locations?.[0]?.merchantLocationKey;
-    if (key) return key;
+    const location = data.locations?.[0];
+    if (location?.merchantLocationKey) {
+      // A location saved with a missing or partial postcode blocks publishing
+      // (eBay 25012), so bring it back in line with the configured one.
+      const current = location.location?.address?.postalCode;
+      if (postalCode && current !== postalCode) {
+        const updated = await ebayFetch(
+          `/sell/inventory/v1/location/${location.merchantLocationKey}/update_location_details`,
+          accessToken,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              location: { address: { country: ebayCountry(), postalCode } },
+            }),
+          },
+        );
+        if (!updated.ok) {
+          throw new Error(`Updating your item location failed: ${await updated.text()}`);
+        }
+      }
+      return location.merchantLocationKey;
+    }
   }
 
   const key = 'easylisting-default';
-  const postalCode = process.env.EBAY_LOCATION_POSTCODE;
   const created = await ebayFetch(`/sell/inventory/v1/location/${key}`, accessToken, {
     method: 'POST',
     body: JSON.stringify({

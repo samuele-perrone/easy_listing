@@ -14,7 +14,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 ## Not finished
 
 - **Publishing a draft has never succeeded.** The last attempt failed because the offer had no merchant location. That is now fixed in `ensureInventoryLocation()`, but **the fix applies when an offer is created**, so the draft that already exists on eBay predates it. Next step: create a *fresh* draft, then publish that one.
-- **`EBAY_LOCATION_POSTCODE` is unset.** If eBay rejects the item location without a postcode, set it: `vercel env add EBAY_LOCATION_POSTCODE production`.
+- **`EBAY_LOCATION_POSTCODE` must be a full postcode** (`SW1A 1AA`, not `SW1A`). eBay accepts a partial one when creating the location but rejects it when publishing.
 - **No tests.** Everything so far has been verified by hand against live services.
 
 ---
@@ -43,6 +43,8 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | `1100 Insufficient permissions` on taxonomy | The Taxonomy API needs eBay's **base** scope, which the seller token doesn't carry | Mint a client-credentials application token instead of re-prompting the seller |
 | `20403 User is not eligible for Business Policy` | Account not enrolled in the Business Policies programme | `ensureBusinessPoliciesOptIn()` enrols via the Account API |
 | `No <Item.Country>` when publishing | The offer has no merchant location | `ensureInventoryLocation()`, attached as `merchantLocationKey` |
+| `25802 Input error` creating a location | The address had only `country`; eBay needs a postcode for UK locations | Set `EBAY_LOCATION_POSTCODE` |
+| `25012 Invalid inventory location. Enter a full UK postcode` | A **partial** postcode (outward code only) is rejected at publish time, and `ensureInventoryLocation` reused the bad location instead of correcting it | Use the full postcode; the function now reconciles an existing location's postcode via `update_location_details` |
 
 Two eBay-side setup steps that are done and shouldn't need repeating: the seller account is **enrolled in Business Policies**, and **one policy of each type** (postage, payment, returns) exists.
 
