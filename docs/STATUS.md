@@ -45,6 +45,7 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | `No <Item.Country>` when publishing | The offer has no merchant location | `ensureInventoryLocation()`, attached as `merchantLocationKey` |
 | `25802 Input error` creating a location | The address had only `country`; eBay needs a postcode for UK locations | Set `EBAY_LOCATION_POSTCODE` |
 | `25012 Invalid inventory location. Enter a full UK postcode` | A **partial** postcode (outward code only) is rejected at publish time, and `ensureInventoryLocation` reused the bad location instead of correcting it | Use the full postcode; the function now reconciles an existing location's postcode via `update_location_details` |
+| `25021 The provided condition id is invalid for the selected primary category id` | The granular used grades (`USED_VERY_GOOD` = 4000, `USED_GOOD`, `USED_ACCEPTABLE`) are **media-only**; most categories accept only `USED_EXCELLENT` ("Used"). The model picked one freely, and the condition was set on the inventory item *before* the category was known. | `createListing` now resolves the category first, then `supportedCondition()` checks `get_item_condition_policies` and degrades to the nearest accepted grade |
 
 Two eBay-side setup steps that are done and shouldn't need repeating: the seller account is **enrolled in Business Policies**, and **one policy of each type** (postage, payment, returns) exists.
 
@@ -69,7 +70,6 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ## Ideas not yet built
 
-- Editing generated fields before posting — currently they're read-only.
 - Bulk mode: several items in one session.
 - Price research: check eBay sold listings for a realistic figure rather than the model's estimate.
 - Marking an item as sold, and tracking which platform sold it.

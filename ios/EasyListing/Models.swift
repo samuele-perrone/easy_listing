@@ -90,8 +90,35 @@ final class PlatformListing {
         (try? JSONDecoder().decode([ListingField].self, from: fieldsData)) ?? []
     }
 
+    func updateField(label: String, to value: String) {
+        var updated = fields
+        guard let index = updated.firstIndex(where: { $0.label == label }) else { return }
+        updated[index].value = value
+        if let encoded = try? JSONEncoder().encode(updated) { fieldsData = encoded }
+    }
+
     var ebayDraft: EbayDraft? {
         ebayDraftData.flatMap { try? JSONDecoder().decode(EbayDraft.self, from: $0) }
+    }
+
+    /// The eBay payload with any edits to the visible fields applied, so what you
+    /// see on screen is what gets listed.
+    var editedEbayDraft: EbayDraft? {
+        guard var draft = ebayDraft else { return nil }
+        for field in fields {
+            let label = field.label.lowercased()
+            let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if label.contains("title") { draft.title = value }
+            else if label.contains("description") { draft.description = value }
+            else if label.contains("condition") { draft.condition = value }
+            else if label.contains("currency") { draft.currency = value }
+            else if label.contains("category") { draft.categoryQuery = value }
+            else if label.contains("price") {
+                let digits = value.filter { $0.isNumber || $0 == "." }
+                if let price = Double(digits) { draft.price = price }
+            }
+        }
+        return draft
     }
 
     var status: PostStatus {

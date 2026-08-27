@@ -10,6 +10,7 @@ struct PlatformListingView: View {
 
     @StateObject private var ebayAuth = EbayAuthService.shared
     @State private var copiedField: String?
+    @State private var editingField: ListingField?
     @State private var showingPublishWarning = false
     @State private var isPosting = false
     @State private var postError: String?
@@ -20,19 +21,32 @@ struct PlatformListingView: View {
             statusBanner
 
             ForEach(listing.fields) { field in
-                FieldCard(field: field, isCopied: copiedField == field.label) {
-                    UIPasteboard.general.string = field.value
-                    withAnimation { copiedField = field.label }
-                    if listing.status == .notPosted && !listing.platform.supportsAutoPost {
-                        listing.status = .copiedOver
-                    }
-                }
+                FieldCard(
+                    field: field,
+                    isCopied: copiedField == field.label,
+                    onCopy: {
+                        UIPasteboard.general.string = field.value
+                        withAnimation { copiedField = field.label }
+                        if listing.status == .notPosted && !listing.platform.supportsAutoPost {
+                            listing.status = .copiedOver
+                        }
+                    },
+                    onEdit: { editingField = field }
+                )
             }
 
             if listing.platform.supportsAutoPost {
                 ebaySection
             } else {
                 copyPasteFooter
+            }
+        }
+        .sheet(item: $editingField) { field in
+            EditFieldSheet(
+                field: field,
+                options: choices(for: field)
+            ) { newValue in
+                listing.updateField(label: field.label, to: newValue)
             }
         }
         .alert("Post to eBay?", isPresented: $showingPublishWarning) {
@@ -143,6 +157,23 @@ struct PlatformListingView: View {
         .padding(.top, 4)
     }
 
+    /// Fields with a fixed set of valid values get a picker instead of free text —
+    /// eBay rejects a condition that isn't one of its enums.
+    private func choices(for field: ListingField) -> [String]? {
+        guard listing.platform == .ebay,
+              field.label.lowercased().contains("condition") else { return nil }
+        return [
+            "NEW",
+            "NEW_OTHER",
+            "LIKE_NEW",
+            "USED_EXCELLENT",
+            "USED_VERY_GOOD",
+            "USED_GOOD",
+            "USED_ACCEPTABLE",
+            "FOR_PARTS_OR_NOT_WORKING",
+        ]
+    }
+
     private func openPlatform() {
         let platform = listing.platform
         if let appURL = platform.appURL, UIApplication.shared.canOpenURL(appURL) {
@@ -153,7 +184,7 @@ struct PlatformListingView: View {
     }
 
     private func post(publish: Bool) async {
-        guard let draft = listing.ebayDraft else { return }
+        guard let draft = listing.editedEbayDraft else { return }
         isPosting = true
         defer { isPosting = false }
         do {
@@ -197,28 +228,87 @@ private struct FieldCard: View {
     let field: ListingField
     let isCopied: Bool
     let onCopy: () -> Void
+    let onEdit: () -> Void
 
     var body: some View {
-        Button(action: onCopy) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(field.label.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 14) {
+                Text(field.label.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                        .font(.caption2)
+                }
+                Button(action: onCopy) {
                     Label(isCopied ? "Copied" : "Copy", systemImage: isCopied ? "checkmark" : "doc.on.doc")
                         .font(.caption2)
                         .foregroundStyle(isCopied ? .green : .accentColor)
                 }
-                Text(field.value)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.plain)
+
+            Text(field.value)
+                .font(.callout)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onCopy)
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+/// Edits one generated field. Fields with a fixed value set get a picker so an
+/// invalid value can't be typed.
+private struct EditFieldSheet: View {
+    let field: ListingField
+    let options: [String]?
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var value: String
+
+    init(field: ListingField, options: [String]?, onSave: @escaping (String) -> Void) {
+        self.field = field
+        self.options = options
+        self.onSave = onSave
+        _value = State(initialValue: field.value)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let options {
+                    Picker(field.label, selection: $value) {
+                        ForEach(options, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } else {
+                    TextEditor(text: $value)
+                        .frame(minHeight: 200)
+                        .font(.callout)
+                }
+            }
+            .navigationTitle(field.label)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(value.trimmingCharacters(in: .whitespacesAndNewlines))
+                        dismiss()
+                    }
+                    .disabled(value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
     }
 }

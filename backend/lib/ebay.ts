@@ -153,7 +153,70 @@ async function ebayFetch(path: string, accessToken: string, init: RequestInit = 
 }
 
 /** Finds the best category ID for a search phrase via the Taxonomy API. */
-export async function suggestCategoryId(_userToken: string, query: string): Promise<string> {
+// Inventory API condition enum → eBay's numeric condition ID.
+const CONDITION_IDS: Record<string, string> = {
+  NEW: '1000',
+  NEW_OTHER: '1500',
+  NEW_WITH_DEFECTS: '1750',
+  CERTIFIED_REFURBISHED: '2000',
+  SELLER_REFURBISHED: '2500',
+  LIKE_NEW: '2750',
+  USED_EXCELLENT: '3000',
+  USED_VERY_GOOD: '4000',
+  USED_GOOD: '5000',
+  USED_ACCEPTABLE: '6000',
+  FOR_PARTS_OR_NOT_WORKING: '7000',
+};
+
+// The granular used grades only exist for media categories, so most categories
+// reject anything but USED_EXCELLENT ("Used"). Degrade to the nearest accepted grade.
+const CONDITION_FALLBACKS: Record<string, string[]> = {
+  LIKE_NEW: ['USED_EXCELLENT', 'NEW_OTHER', 'NEW'],
+  USED_VERY_GOOD: ['USED_EXCELLENT', 'USED_GOOD'],
+  USED_GOOD: ['USED_EXCELLENT', 'USED_ACCEPTABLE'],
+  USED_ACCEPTABLE: ['USED_EXCELLENT', 'FOR_PARTS_OR_NOT_WORKING'],
+  USED_EXCELLENT: ['USED_GOOD', 'USED_VERY_GOOD'],
+  NEW_OTHER: ['NEW'],
+  NEW_WITH_DEFECTS: ['NEW_OTHER', 'NEW'],
+  CERTIFIED_REFURBISHED: ['SELLER_REFURBISHED', 'USED_EXCELLENT'],
+  SELLER_REFURBISHED: ['USED_EXCELLENT'],
+};
+
+/** Picks a condition the category actually accepts (eBay 25021 otherwise). */
+export async function supportedCondition(
+  categoryTreeId: string,
+  categoryId: string,
+  desired: string,
+): Promise<string> {
+  const accessToken = await getApplicationToken();
+  const response = await ebayFetch(
+    `/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_condition_policies?filter=categoryIds:{${categoryId}}`,
+    accessToken,
+  );
+  if (!response.ok) return desired;
+
+  const data = await response.json();
+  const allowed: string[] = (data.itemConditionPolicies?.[0]?.itemConditions ?? []).map(
+    (c: { conditionId: string | number }) => String(c.conditionId),
+  );
+  if (allowed.length === 0) return desired;
+
+  const accepts = (name: string) => allowed.includes(CONDITION_IDS[name] ?? '');
+  if (accepts(desired)) return desired;
+
+  for (const candidate of CONDITION_FALLBACKS[desired] ?? []) {
+    if (accepts(candidate)) {
+      console.log(`eBay category ${categoryId} rejects ${desired}; using ${candidate}`);
+      return candidate;
+    }
+  }
+  const anyAllowed = Object.keys(CONDITION_IDS).find(accepts);
+  return anyAllowed ?? desired;
+}
+
+export async function suggestCategory(
+  query: string,
+): Promise<{ categoryId: string; categoryTreeId: string }> {
   const accessToken = await getApplicationToken();
 
   const treeResponse = await ebayFetch(
@@ -171,7 +234,7 @@ export async function suggestCategoryId(_userToken: string, query: string): Prom
   const data = await suggestResponse.json();
   const suggestion = data.categorySuggestions?.[0]?.category?.categoryId;
   if (!suggestion) throw new Error(`No eBay category found for "${query}"`);
-  return suggestion;
+  return { categoryId: suggestion, categoryTreeId };
 }
 
 /**
@@ -311,9 +374,13 @@ export async function createListing(
 ): Promise<{ offerId: string; listingId?: string }> {
   const sku = `easylisting-${Date.now()}`;
 
+  // Resolve the category first: which conditions are legal depends on it.
+  const { categoryId, categoryTreeId } = await suggestCategory(draft.categoryQuery);
+  const condition = await supportedCondition(categoryTreeId, categoryId, draft.condition);
+
   const inventoryItem = {
     availability: { shipToLocationAvailability: { quantity: 1 } },
-    condition: draft.condition,
+    condition,
     product: {
       title: draft.title.slice(0, 80),
       description: draft.description,
@@ -340,7 +407,6 @@ export async function createListing(
     }
   }
 
-  const categoryId = await suggestCategoryId(accessToken, draft.categoryQuery);
   const policies = await getSellerPolicies(accessToken);
   const merchantLocationKey = await ensureInventoryLocation(accessToken);
 
