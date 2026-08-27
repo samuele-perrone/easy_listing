@@ -3,6 +3,8 @@
 // redirect value), EBAY_ENV ("production" | "sandbox", default sandbox),
 // EBAY_MARKETPLACE_ID (default EBAY_GB).
 
+import { chooseAspectValues, type CategoryAspect } from '@/lib/aspects';
+
 const ENV = process.env.EBAY_ENV === 'production' ? 'production' : 'sandbox';
 
 export const EBAY = {
@@ -189,16 +191,25 @@ export async function supportedCondition(
   desired: string,
 ): Promise<string> {
   const accessToken = await getApplicationToken();
+  // The braces in eBay's filter syntax must be percent-encoded.
+  const filter = `categoryIds:%7B${categoryId}%7D`;
   const response = await ebayFetch(
-    `/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_condition_policies?filter=categoryIds:{${categoryId}}`,
+    `/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_condition_policies?filter=${filter}`,
     accessToken,
   );
-  if (!response.ok) return desired;
+  if (!response.ok) {
+    console.log('condition policy lookup failed', response.status, await response.text());
+    // Without the policy we can't verify, so avoid the media-only grades —
+    // "Used" is accepted by essentially every category that allows used items.
+    const mediaOnly = ['USED_VERY_GOOD', 'USED_GOOD', 'USED_ACCEPTABLE', 'LIKE_NEW'];
+    return mediaOnly.includes(desired) ? 'USED_EXCELLENT' : desired;
+  }
 
   const data = await response.json();
   const allowed: string[] = (data.itemConditionPolicies?.[0]?.itemConditions ?? []).map(
     (c: { conditionId: string | number }) => String(c.conditionId),
   );
+  console.log(`eBay category ${categoryId} allows conditions [${allowed.join(', ')}]`);
   if (allowed.length === 0) return desired;
 
   const accepts = (name: string) => allowed.includes(CONDITION_IDS[name] ?? '');
@@ -212,6 +223,37 @@ export async function supportedCondition(
   }
   const anyAllowed = Object.keys(CONDITION_IDS).find(accepts);
   return anyAllowed ?? desired;
+}
+
+/** The item specifics eBay requires for a category (e.g. "Type" on watch straps). */
+export async function requiredAspects(
+  categoryTreeId: string,
+  categoryId: string,
+): Promise<CategoryAspect[]> {
+  const accessToken = await getApplicationToken();
+  const response = await ebayFetch(
+    `/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId}`,
+    accessToken,
+  );
+  if (!response.ok) {
+    console.log('aspect lookup failed', response.status, await response.text());
+    return [];
+  }
+
+  const data = await response.json();
+  type RawAspect = {
+    localizedAspectName: string;
+    aspectConstraint?: { aspectRequired?: boolean; aspectMode?: string };
+    aspectValues?: { localizedValue: string }[];
+  };
+
+  return (data.aspects ?? [])
+    .filter((aspect: RawAspect) => aspect.aspectConstraint?.aspectRequired)
+    .map((aspect: RawAspect) => ({
+      name: aspect.localizedAspectName,
+      allowedValues: (aspect.aspectValues ?? []).map((v) => v.localizedValue),
+      selectionOnly: aspect.aspectConstraint?.aspectMode === 'SELECTION_ONLY',
+    }));
 }
 
 export async function suggestCategory(
@@ -378,6 +420,10 @@ export async function createListing(
   const { categoryId, categoryTreeId } = await suggestCategory(draft.categoryQuery);
   const condition = await supportedCondition(categoryTreeId, categoryId, draft.condition);
 
+  const aspects = await requiredAspects(categoryTreeId, categoryId);
+  const aspectValues = await chooseAspectValues(draft.title, draft.description, aspects);
+  console.log(`eBay category ${categoryId} requires aspects`, JSON.stringify(aspectValues));
+
   const inventoryItem = {
     availability: { shipToLocationAvailability: { quantity: 1 } },
     condition,
@@ -385,6 +431,7 @@ export async function createListing(
       title: draft.title.slice(0, 80),
       description: draft.description,
       imageUrls: imageUrls.slice(0, 12),
+      ...(Object.keys(aspectValues).length ? { aspects: aspectValues } : {}),
     },
   };
   console.log('eBay inventory item request', sku, JSON.stringify(inventoryItem));
