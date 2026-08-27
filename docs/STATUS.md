@@ -82,11 +82,13 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ## TestFlight distribution
 
-Set up on 27 Aug 2026 to escape the 7-day free-signing expiry. Archive verified building with icon, version, and encryption declaration.
+✅ **Working as of 27 Aug 2026.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and build 1 uploaded successfully. This replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
 
-**Blocked on:** Apple Developer Program enrolment (£79/yr) — nothing else is missing.
+To ship a new build: `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
 
-Once enrolled: create the app in App Store Connect with bundle ID `com.samperrone.easylisting`, generate an App Store Connect API key, then `cd ios && ./release.sh`. The script archives, exports, and uploads; TestFlight builds last **90 days**.
+`ios/refresh.sh` — the free-signing rebuild/reinstall script — is now redundant, but kept in case the membership lapses.
+
+Ignore App Store Connect's **Distribution** tab entirely: screenshots, App Privacy, and "Add for Review" are for a public release. Internal TestFlight testing needs none of them and skips Beta App Review.
 
 Bump `CURRENT_PROJECT_VERSION` in `ios/project.yml` before each upload — App Store Connect rejects a duplicate build number.
 
