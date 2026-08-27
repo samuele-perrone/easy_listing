@@ -1,0 +1,483 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0E78ADDEE20A70BB2EA02F0D /* ListingEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B4E83D9B686FAF46DB1D1F /* ListingEditingTests.swift */; };
+		187CCD9E74756270D24DA9D8 /* EasyListingApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */; };
+		1944ECFD8C78648345815EBE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F520AD7337592BEA88A3FA0D /* SettingsView.swift */; };
+		286A848D5DAD8BF44D211776 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEED068569C00772F8E7437F /* ErrorAlert.swift */; };
+		3093FE017ED3979E61DCF136 /* PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B069B1EC7F16752DA818CD99 /* PlatformTests.swift */; };
+		3719311EB00DAF4FF113B025 /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270743E5C40DC357F4CC4F92 /* ItemDetailView.swift */; };
+		718FB97856889E3403E87FE4 /* NewItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA57719E6ACBDDC7EC23CDFD /* NewItemView.swift */; };
+		927D2E89676EB23ED7EE2EA8 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC39570FF0E86C3CDFEB2E1 /* HistoryView.swift */; };
+		9EC4D879ED3E7282B9D02277 /* EbayAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41B25CFF008F8C05AA188C62 /* EbayAuthService.swift */; };
+		A2249838175E1738F4C9B3CD /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE494CA2C2ED8AC298E7EE2 /* Keychain.swift */; };
+		A36EA950B7B3B09BFA8AAA7B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1AB2C9C5137C8C80E450949D /* Assets.xcassets */; };
+		ACC9844FF834560BF02A32A3 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DE39D03067B4C9D4DF534E /* Models.swift */; };
+		D04381176494D6A7C0F2F503 /* PlatformListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D3F10C893CA15111AD5668 /* PlatformListingView.swift */; };
+		D7D90656448881ACB581E6EE /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BE6627D3973C84FD16A37F /* CameraPicker.swift */; };
+		EAE410BAB8FE54F8CA534432 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD9261D20F8E83DBAF84714 /* APIClient.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		114F17093392DCD9D95E1DDF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 57C8C980E4FD95D8CE7DA673 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4E9C1134C073C556B27EABC5;
+			remoteInfo = EasyListing;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1AB2C9C5137C8C80E450949D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		270743E5C40DC357F4CC4F92 /* ItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailView.swift; sourceTree = "<group>"; };
+		39DE39D03067B4C9D4DF534E /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		41B25CFF008F8C05AA188C62 /* EbayAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbayAuthService.swift; sourceTree = "<group>"; };
+		5EC39570FF0E86C3CDFEB2E1 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		71B4E83D9B686FAF46DB1D1F /* ListingEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListingEditingTests.swift; sourceTree = "<group>"; };
+		89D3F10C893CA15111AD5668 /* PlatformListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformListingView.swift; sourceTree = "<group>"; };
+		9304DE6E366834EF1BF59157 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AAD9261D20F8E83DBAF84714 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		B069B1EC7F16752DA818CD99 /* PlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformTests.swift; sourceTree = "<group>"; };
+		B154C0FC7A38754BE8A75791 /* EasyListingTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EasyListingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFE786773F55484251C066F4 /* EasyListing.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EasyListing.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCE494CA2C2ED8AC298E7EE2 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyListingApp.swift; sourceTree = "<group>"; };
+		DEED068569C00772F8E7437F /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
+		F1BE6627D3973C84FD16A37F /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
+		F520AD7337592BEA88A3FA0D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FA57719E6ACBDDC7EC23CDFD /* NewItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewItemView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		22497380953239EB02BE8731 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AAD9261D20F8E83DBAF84714 /* APIClient.swift */,
+				41B25CFF008F8C05AA188C62 /* EbayAuthService.swift */,
+				CCE494CA2C2ED8AC298E7EE2 /* Keychain.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4E05770AB44BB68F05BB9800 /* EasyListingTests */ = {
+			isa = PBXGroup;
+			children = (
+				71B4E83D9B686FAF46DB1D1F /* ListingEditingTests.swift */,
+				B069B1EC7F16752DA818CD99 /* PlatformTests.swift */,
+			);
+			path = EasyListingTests;
+			sourceTree = "<group>";
+		};
+		707573638C1E6B5E743DA3A8 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F1BE6627D3973C84FD16A37F /* CameraPicker.swift */,
+				DEED068569C00772F8E7437F /* ErrorAlert.swift */,
+				5EC39570FF0E86C3CDFEB2E1 /* HistoryView.swift */,
+				270743E5C40DC357F4CC4F92 /* ItemDetailView.swift */,
+				FA57719E6ACBDDC7EC23CDFD /* NewItemView.swift */,
+				89D3F10C893CA15111AD5668 /* PlatformListingView.swift */,
+				F520AD7337592BEA88A3FA0D /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		C43FAEDA6EFCD305166BF3E3 /* EasyListing */ = {
+			isa = PBXGroup;
+			children = (
+				1AB2C9C5137C8C80E450949D /* Assets.xcassets */,
+				CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */,
+				9304DE6E366834EF1BF59157 /* Info.plist */,
+				39DE39D03067B4C9D4DF534E /* Models.swift */,
+				22497380953239EB02BE8731 /* Services */,
+				707573638C1E6B5E743DA3A8 /* Views */,
+			);
+			path = EasyListing;
+			sourceTree = "<group>";
+		};
+		C8F00FFD6244C78835E786B7 = {
+			isa = PBXGroup;
+			children = (
+				C43FAEDA6EFCD305166BF3E3 /* EasyListing */,
+				4E05770AB44BB68F05BB9800 /* EasyListingTests */,
+				E41989DC9247BF7CED2AC1A6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E41989DC9247BF7CED2AC1A6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BFE786773F55484251C066F4 /* EasyListing.app */,
+				B154C0FC7A38754BE8A75791 /* EasyListingTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4E9C1134C073C556B27EABC5 /* EasyListing */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 75C4F21EFA028CB60A008589 /* Build configuration list for PBXNativeTarget "EasyListing" */;
+			buildPhases = (
+				54AA1ECBD0C624C7EFF13AC6 /* Sources */,
+				BF0E36904B7F78DD32B59D79 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = EasyListing;
+			packageProductDependencies = (
+			);
+			productName = EasyListing;
+			productReference = BFE786773F55484251C066F4 /* EasyListing.app */;
+			productType = "com.apple.product-type.application";
+		};
+		822B469510B8772FEAC299FE /* EasyListingTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 79EA3F04CF68F06AF1441AA7 /* Build configuration list for PBXNativeTarget "EasyListingTests" */;
+			buildPhases = (
+				6E4077C64C26E3D93E76A680 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B27ABC050B8A8001D51E636C /* PBXTargetDependency */,
+			);
+			name = EasyListingTests;
+			packageProductDependencies = (
+			);
+			productName = EasyListingTests;
+			productReference = B154C0FC7A38754BE8A75791 /* EasyListingTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		57C8C980E4FD95D8CE7DA673 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4E9C1134C073C556B27EABC5 = {
+						DevelopmentTeam = 7RYYQ8M5X5;
+						ProvisioningStyle = Automatic;
+					};
+					822B469510B8772FEAC299FE = {
+						DevelopmentTeam = 7RYYQ8M5X5;
+					};
+				};
+			};
+			buildConfigurationList = C50A6A61012DCA83FF0441E5 /* Build configuration list for PBXProject "EasyListing" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C8F00FFD6244C78835E786B7;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E41989DC9247BF7CED2AC1A6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4E9C1134C073C556B27EABC5 /* EasyListing */,
+				822B469510B8772FEAC299FE /* EasyListingTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BF0E36904B7F78DD32B59D79 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A36EA950B7B3B09BFA8AAA7B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		54AA1ECBD0C624C7EFF13AC6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EAE410BAB8FE54F8CA534432 /* APIClient.swift in Sources */,
+				D7D90656448881ACB581E6EE /* CameraPicker.swift in Sources */,
+				187CCD9E74756270D24DA9D8 /* EasyListingApp.swift in Sources */,
+				9EC4D879ED3E7282B9D02277 /* EbayAuthService.swift in Sources */,
+				286A848D5DAD8BF44D211776 /* ErrorAlert.swift in Sources */,
+				927D2E89676EB23ED7EE2EA8 /* HistoryView.swift in Sources */,
+				3719311EB00DAF4FF113B025 /* ItemDetailView.swift in Sources */,
+				A2249838175E1738F4C9B3CD /* Keychain.swift in Sources */,
+				ACC9844FF834560BF02A32A3 /* Models.swift in Sources */,
+				718FB97856889E3403E87FE4 /* NewItemView.swift in Sources */,
+				D04381176494D6A7C0F2F503 /* PlatformListingView.swift in Sources */,
+				1944ECFD8C78648345815EBE /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E4077C64C26E3D93E76A680 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0E78ADDEE20A70BB2EA02F0D /* ListingEditingTests.swift in Sources */,
+				3093FE017ED3979E61DCF136 /* PlatformTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B27ABC050B8A8001D51E636C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4E9C1134C073C556B27EABC5 /* EasyListing */;
+			targetProxy = 114F17093392DCD9D95E1DDF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0660321F84B68AC7E5324B9E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		0B580D4C3FFAB9FE2178EA45 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				INFOPLIST_FILE = EasyListing/Info.plist;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B7E170002A624744B634054A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C878D3BE44553BC8761F33A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EasyListing.app/EasyListing";
+			};
+			name = Debug;
+		};
+		D1E49051B3359EA605488894 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EasyListing.app/EasyListing";
+			};
+			name = Release;
+		};
+		F6C5848C83FA40E70C1F008E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				INFOPLIST_FILE = EasyListing/Info.plist;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		75C4F21EFA028CB60A008589 /* Build configuration list for PBXNativeTarget "EasyListing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B580D4C3FFAB9FE2178EA45 /* Debug */,
+				F6C5848C83FA40E70C1F008E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		79EA3F04CF68F06AF1441AA7 /* Build configuration list for PBXNativeTarget "EasyListingTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C878D3BE44553BC8761F33A5 /* Debug */,
+				D1E49051B3359EA605488894 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C50A6A61012DCA83FF0441E5 /* Build configuration list for PBXProject "EasyListing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B7E170002A624744B634054A /* Debug */,
+				0660321F84B68AC7E5324B9E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 57C8C980E4FD95D8CE7DA673 /* Project object */;
+}
