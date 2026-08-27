@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "npm run typecheck && cd .. && vercel deploy --prod"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.39",

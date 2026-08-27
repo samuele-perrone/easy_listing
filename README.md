@@ -82,7 +82,7 @@ xcrun devicectl device install app --device <DEVICE_UUID> \
 
 ### Deploying
 
-Push to `main` — that's it. To deploy manually, run `vercel deploy --prod` **from the repo root**, never from `backend/` (that creates a stray project, since Vercel's configured root directory is already `backend`).
+Push to `main` — that's it. To deploy manually, run `npm run deploy` from `backend/` — it typechecks and deploys from the repo root. Never run `vercel deploy` from inside `backend/`; that creates a stray project, since Vercel's configured root directory is already `backend`.
 
 ## Environment variables
 
@@ -99,7 +99,7 @@ See `backend/.env.example`. Set on Vercel for the `production` target.
 | `EBAY_ENV` | `production` or `sandbox` (defaults to sandbox) |
 | `EBAY_MARKETPLACE_ID` | `EBAY_GB` |
 | `EBAY_VERIFICATION_TOKEN` / `EBAY_DELETION_ENDPOINT` | For the account-deletion webhook |
-| `EBAY_LOCATION_POSTCODE` | Optional; only needed if eBay rejects the item location without one |
+| `EBAY_LOCATION_POSTCODE` | Required to publish. Must be the **full** postcode (`SW1A 1AA`) — a partial one is accepted when the location is created but rejected at publish. |
 
 ## Safety behaviour
 

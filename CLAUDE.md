@@ -23,8 +23,9 @@ npm run dev
 npm run typecheck          # tsc --noEmit — run before every deploy
 npm run build
 
-# Deploy — ALWAYS from the repo root, never from backend/
-vercel deploy --prod
+# Deploy — use this script; it typechecks and deploys from the repo root.
+# Running `vercel deploy` from backend/ creates a stray project (done 3x already).
+npm run deploy
 
 # iOS (from ios/)
 xcodegen generate          # regenerates the gitignored .xcodeproj after editing project.yml
