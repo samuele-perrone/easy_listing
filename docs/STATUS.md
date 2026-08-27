@@ -77,3 +77,17 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 - Price research: check eBay sold listings for a realistic figure rather than the model's estimate.
 - Marking an item as sold, and tracking which platform sold it.
 - Tests around `lib/ebay.ts` — the error paths are intricate and all hand-verified so far.
+
+---
+
+## TestFlight distribution
+
+Set up on 27 Aug 2026 to escape the 7-day free-signing expiry. Archive verified building with icon, version, and encryption declaration.
+
+**Blocked on:** Apple Developer Program enrolment (£79/yr) — nothing else is missing.
+
+Once enrolled: create the app in App Store Connect with bundle ID `com.samperrone.easylisting`, generate an App Store Connect API key, then `cd ios && ./release.sh`. The script archives, exports, and uploads; TestFlight builds last **90 days**.
+
+Bump `CURRENT_PROJECT_VERSION` in `ios/project.yml` before each upload — App Store Connect rejects a duplicate build number.
+
+**A public App Store release is a different project**, not a packaging step: the backend uses a single Anthropic key, so every user's generation would bill to the developer. That needs per-user billing (or per-user keys) first, and eBay may require review before a distributed app uses their API.
