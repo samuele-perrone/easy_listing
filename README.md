@@ -2,7 +2,7 @@
 
 Photograph an item once, get ready-to-post listings for **eBay, Vinted, Gumtree and FB Marketplace** — with real draft/publish on eBay and a guided copy-paste flow everywhere else. Every item is kept in a local history.
 
-**Status:** working end to end. See [docs/STATUS.md](docs/STATUS.md) for exactly what is done, what is left, and the gotchas already solved.
+**Status:** working end to end — a real listing has been published live on eBay. See [docs/STATUS.md](docs/STATUS.md) for what is done, what is left, and the gotchas already solved.
 
 - **Live backend:** https://easy-listing-chi.vercel.app
 - **Repo:** https://github.com/samuele-perrone/easy_listing (pushes to `main` auto-deploy to production)

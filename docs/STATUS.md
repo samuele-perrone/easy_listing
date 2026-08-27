@@ -1,4 +1,4 @@
-# Status — as of 22 August 2026
+# Status — as of 27 August 2026
 
 Where the project stands, what's left, and the non-obvious things already solved.
 
@@ -9,12 +9,13 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **Listing generation.** Photos + optional notes → complete field sets for eBay, Vinted, Gumtree and FB Marketplace. Verified against the live backend. Output respects each platform's own vocabulary (eBay condition enums, Vinted's "Very good" scale, FB's "Used - like new") and inserts `[CHECK: ...]` placeholders rather than inventing details it can't see.
 - **iOS app.** Installed and running on a physical iPhone 17 Pro. Camera and library import, history via SwiftData, per-platform tap-to-copy cards, deep links into the other marketplaces' apps.
 - **eBay OAuth.** Connects, stores tokens in the Keychain, refreshes them.
-- **eBay draft creation.** A real draft was created on the production account and appeared in Seller Hub.
+- **eBay listing, end to end.** ✅ **A real listing was published live on the production account on 27 Aug 2026** (an Apple Watch Sport Band). The full chain works: inventory item → category → category-valid condition → required item specifics → business policies → merchant location → offer → publish.
+- **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed.
 
 ## Not finished
 
-- **Publishing a draft has never succeeded.** The last attempt failed because the offer had no merchant location. That is now fixed in `ensureInventoryLocation()`, but **the fix applies when an offer is created**, so the draft that already exists on eBay predates it. Next step: create a *fresh* draft, then publish that one.
-- **`EBAY_LOCATION_POSTCODE` must be a full postcode** (`SW1A 1AA`, not `SW1A`). eBay accepts a partial one when creating the location but rejects it when publishing.
+- **`Post to eBay` publishes immediately.** There's no way to correct a live listing from the app — you'd end it in Seller Hub. Drafts are the safe path.
+- **Item specifics are model-chosen.** Required aspects are filled by an AI call at listing time and aren't shown for review before posting. Surfacing them in the app for confirmation would be a sensible next step.
 - **No tests.** Everything so far has been verified by hand against live services.
 
 ---
@@ -46,6 +47,8 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | `25802 Input error` creating a location | The address had only `country`; eBay needs a postcode for UK locations | Set `EBAY_LOCATION_POSTCODE` |
 | `25012 Invalid inventory location. Enter a full UK postcode` | A **partial** postcode (outward code only) is rejected at publish time, and `ensureInventoryLocation` reused the bad location instead of correcting it | Use the full postcode; the function now reconciles an existing location's postcode via `update_location_details` |
 | `25021 The provided condition id is invalid for the selected primary category id` | The granular used grades (`USED_VERY_GOOD` = 4000, `USED_GOOD`, `USED_ACCEPTABLE`) are **media-only**; most categories accept only `USED_EXCELLENT` ("Used"). The model picked one freely, and the condition was set on the inventory item *before* the category was known. | `createListing` now resolves the category first, then `supportedCondition()` checks `get_item_condition_policies` and degrades to the nearest accepted grade |
+| The same 25021 **after** that fix shipped | eBay's filter syntax `categoryIds:{123}` needs the braces **percent-encoded**; unencoded, the lookup 4xx'd and the code silently returned the original condition | Encode as `%7B…%7D`; log lookup failures instead of swallowing them, and degrade media-only grades to `USED_EXCELLENT` when the policy can't be read |
+| `25002 The item specific Type is missing` | Categories require their own item specifics (aspects), which vary per category and so can't be generated up front — the category isn't known until listing time | `requiredAspects()` fetches them, `chooseAspectValues()` (in `lib/aspects.ts`) has the model fill them from the listing text, constrained to eBay's allowed values |
 
 Two eBay-side setup steps that are done and shouldn't need repeating: the seller account is **enrolled in Business Policies**, and **one policy of each type** (postage, payment, returns) exists.
 
