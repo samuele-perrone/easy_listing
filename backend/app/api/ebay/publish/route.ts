@@ -1,4 +1,5 @@
 import { EBAY, ebayHeaders, listingViewURL } from '@/lib/ebay';
+import { EbayApiError, toFriendly } from '@/lib/ebayErrors';
 
 export const maxDuration = 300;
 
@@ -13,12 +14,11 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: ebayHeaders(accessToken),
     });
-    if (!response.ok) throw new Error(`Publishing offer failed: ${await response.text()}`);
+    if (!response.ok) throw new EbayApiError('Publishing the listing', await response.text());
     const { listingId } = await response.json();
     return Response.json({ listingId, viewURL: listingViewURL(listingId) });
   } catch (error) {
     console.error('ebay publish failed', error);
-    const message = error instanceof Error ? error.message : 'Publishing to eBay failed.';
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(toFriendly(error, 'Publishing the listing'), { status: 500 });
   }
 }

@@ -4,7 +4,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var ebayAuth = EbayAuthService.shared
     @AppStorage("backendURL") private var backendURL = ""
-    @State private var connectError: String?
+    @State private var connectError: APIClient.APIError?
     @State private var isConnecting = false
 
     var body: some View {
@@ -34,7 +34,7 @@ struct SettingsView: View {
                                 isConnecting = true
                                 defer { isConnecting = false }
                                 do { try await ebayAuth.connect() }
-                                catch { connectError = error.localizedDescription }
+                                catch { connectError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription) }
                             }
                         } label: {
                             if isConnecting {
@@ -56,11 +56,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
-            .alert("Couldn't connect eBay", isPresented: .init(get: { connectError != nil }, set: { if !$0 { connectError = nil } })) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(connectError ?? "")
-            }
+            .errorAlert($connectError, title: "Couldn't connect eBay")
         }
     }
 }

@@ -11,7 +11,7 @@ struct NewItemView: View {
     @State private var notes = ""
     @State private var showingCamera = false
     @State private var isGenerating = false
-    @State private var errorMessage: String?
+    @State private var generateError: APIClient.APIError?
 
     var body: some View {
         NavigationStack {
@@ -93,11 +93,7 @@ struct NewItemView: View {
                 CameraPicker { image in photos.append(image) }
                     .ignoresSafeArea()
             }
-            .alert("Couldn't generate listings", isPresented: .init(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
-            }
+            .errorAlert($generateError, title: "Couldn't generate listings")
             .interactiveDismissDisabled(isGenerating)
         }
     }
@@ -122,7 +118,7 @@ struct NewItemView: View {
             }
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            generateError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription)
         }
     }
 }

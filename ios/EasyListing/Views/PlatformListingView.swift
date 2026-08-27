@@ -13,7 +13,7 @@ struct PlatformListingView: View {
     @State private var editingField: ListingField?
     @State private var showingPublishWarning = false
     @State private var isPosting = false
-    @State private var postError: String?
+    @State private var postError: APIClient.APIError?
     @State private var postedURL: String?
 
     var body: some View {
@@ -60,11 +60,7 @@ struct PlatformListingView: View {
         } message: {
             Text("This will publish the listing LIVE on eBay under your connected account, visible to buyers immediately. This can't be undone from the app — you'd need to end the listing on eBay.")
         }
-        .alert("eBay error", isPresented: .init(get: { postError != nil }, set: { if !$0 { postError = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(postError ?? "")
-        }
+        .errorAlert($postError, title: "Couldn't list on eBay")
     }
 
     @ViewBuilder
@@ -204,7 +200,7 @@ struct PlatformListingView: View {
                 listing.status = .drafted
             }
         } catch {
-            postError = error.localizedDescription
+            postError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription)
         }
     }
 
@@ -219,7 +215,7 @@ struct PlatformListingView: View {
             listing.postedAt = .now
             listing.postedURL = response.viewURL
         } catch {
-            postError = error.localizedDescription
+            postError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription)
         }
     }
 }

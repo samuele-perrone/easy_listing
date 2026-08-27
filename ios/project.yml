@@ -33,3 +33,24 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 7RYYQ8M5X5
+
+  EasyListingTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [EasyListingTests]
+    dependencies:
+      - target: EasyListing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.samperrone.easylisting.tests
+        DEVELOPMENT_TEAM: 7RYYQ8M5X5
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  EasyListing:
+    build:
+      targets:
+        EasyListing: all
+        EasyListingTests: [test]
+    test:
+      targets: [EasyListingTests]

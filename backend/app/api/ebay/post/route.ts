@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { createListing, listingViewURL, type DraftInput } from '@/lib/ebay';
+import { toFriendly } from '@/lib/ebayErrors';
 
 export const maxDuration = 300;
 
@@ -36,7 +37,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('ebay post failed', error);
-    const message = error instanceof Error ? error.message : 'Posting to eBay failed.';
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(toFriendly(error, 'Posting to eBay'), { status: 500 });
   }
 }

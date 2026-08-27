@@ -4,6 +4,8 @@
 // EBAY_MARKETPLACE_ID (default EBAY_GB).
 
 import { chooseAspectValues, type CategoryAspect } from '@/lib/aspects';
+import { EbayApiError } from '@/lib/ebayErrors';
+import { pickCondition, safeConditionWithoutPolicy } from '@/lib/ebayConditions';
 
 const ENV = process.env.EBAY_ENV === 'production' ? 'production' : 'sandbox';
 
@@ -155,35 +157,6 @@ async function ebayFetch(path: string, accessToken: string, init: RequestInit = 
 }
 
 /** Finds the best category ID for a search phrase via the Taxonomy API. */
-// Inventory API condition enum → eBay's numeric condition ID.
-const CONDITION_IDS: Record<string, string> = {
-  NEW: '1000',
-  NEW_OTHER: '1500',
-  NEW_WITH_DEFECTS: '1750',
-  CERTIFIED_REFURBISHED: '2000',
-  SELLER_REFURBISHED: '2500',
-  LIKE_NEW: '2750',
-  USED_EXCELLENT: '3000',
-  USED_VERY_GOOD: '4000',
-  USED_GOOD: '5000',
-  USED_ACCEPTABLE: '6000',
-  FOR_PARTS_OR_NOT_WORKING: '7000',
-};
-
-// The granular used grades only exist for media categories, so most categories
-// reject anything but USED_EXCELLENT ("Used"). Degrade to the nearest accepted grade.
-const CONDITION_FALLBACKS: Record<string, string[]> = {
-  LIKE_NEW: ['USED_EXCELLENT', 'NEW_OTHER', 'NEW'],
-  USED_VERY_GOOD: ['USED_EXCELLENT', 'USED_GOOD'],
-  USED_GOOD: ['USED_EXCELLENT', 'USED_ACCEPTABLE'],
-  USED_ACCEPTABLE: ['USED_EXCELLENT', 'FOR_PARTS_OR_NOT_WORKING'],
-  USED_EXCELLENT: ['USED_GOOD', 'USED_VERY_GOOD'],
-  NEW_OTHER: ['NEW'],
-  NEW_WITH_DEFECTS: ['NEW_OTHER', 'NEW'],
-  CERTIFIED_REFURBISHED: ['SELLER_REFURBISHED', 'USED_EXCELLENT'],
-  SELLER_REFURBISHED: ['USED_EXCELLENT'],
-};
-
 /** Picks a condition the category actually accepts (eBay 25021 otherwise). */
 export async function supportedCondition(
   categoryTreeId: string,
@@ -199,10 +172,8 @@ export async function supportedCondition(
   );
   if (!response.ok) {
     console.log('condition policy lookup failed', response.status, await response.text());
-    // Without the policy we can't verify, so avoid the media-only grades —
-    // "Used" is accepted by essentially every category that allows used items.
-    const mediaOnly = ['USED_VERY_GOOD', 'USED_GOOD', 'USED_ACCEPTABLE', 'LIKE_NEW'];
-    return mediaOnly.includes(desired) ? 'USED_EXCELLENT' : desired;
+    // Without the policy we can't verify, so avoid the media-only grades.
+    return safeConditionWithoutPolicy(desired);
   }
 
   const data = await response.json();
@@ -210,19 +181,12 @@ export async function supportedCondition(
     (c: { conditionId: string | number }) => String(c.conditionId),
   );
   console.log(`eBay category ${categoryId} allows conditions [${allowed.join(', ')}]`);
-  if (allowed.length === 0) return desired;
 
-  const accepts = (name: string) => allowed.includes(CONDITION_IDS[name] ?? '');
-  if (accepts(desired)) return desired;
-
-  for (const candidate of CONDITION_FALLBACKS[desired] ?? []) {
-    if (accepts(candidate)) {
-      console.log(`eBay category ${categoryId} rejects ${desired}; using ${candidate}`);
-      return candidate;
-    }
+  const chosen = pickCondition(allowed, desired);
+  if (chosen !== desired) {
+    console.log(`eBay category ${categoryId} rejects ${desired}; using ${chosen}`);
   }
-  const anyAllowed = Object.keys(CONDITION_IDS).find(accepts);
-  return anyAllowed ?? desired;
+  return chosen;
 }
 
 /** The item specifics eBay requires for a category (e.g. "Type" on watch straps). */
@@ -265,14 +229,14 @@ export async function suggestCategory(
     `/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=${EBAY.marketplaceId}`,
     accessToken,
   );
-  if (!treeResponse.ok) throw new Error(`Taxonomy tree lookup failed: ${await treeResponse.text()}`);
+  if (!treeResponse.ok) throw new EbayApiError('Looking up the eBay category', await treeResponse.text());
   const { categoryTreeId } = await treeResponse.json();
 
   const suggestResponse = await ebayFetch(
     `/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
     accessToken,
   );
-  if (!suggestResponse.ok) throw new Error(`Category suggestion failed: ${await suggestResponse.text()}`);
+  if (!suggestResponse.ok) throw new EbayApiError('Looking up the eBay category', await suggestResponse.text());
   const data = await suggestResponse.json();
   const suggestion = data.categorySuggestions?.[0]?.category?.categoryId;
   if (!suggestion) throw new Error(`No eBay category found for "${query}"`);
@@ -334,7 +298,7 @@ export async function ensureInventoryLocation(accessToken: string): Promise<stri
           },
         );
         if (!updated.ok) {
-          throw new Error(`Updating your item location failed: ${await updated.text()}`);
+          throw new EbayApiError('Updating your item location', await updated.text());
         }
       }
       return location.merchantLocationKey;
@@ -360,7 +324,7 @@ export async function ensureInventoryLocation(accessToken: string): Promise<stri
   if (!created.ok) {
     const detail = await created.text();
     if (!detail.includes('already exists')) {
-      throw new Error(`Creating an item location failed: ${detail}`);
+      throw new EbayApiError('Saving your item location', detail);
     }
   }
   return key;
@@ -382,7 +346,7 @@ export async function getSellerPolicies(accessToken: string) {
       `/sell/account/v1/${path}?marketplace_id=${EBAY.marketplaceId}`,
       accessToken,
     );
-    if (!response.ok) throw new Error(`Fetching ${path} failed: ${await response.text()}`);
+    if (!response.ok) throw new EbayApiError('Reading your eBay business policies', await response.text());
     const data = await response.json();
     const first = data[listKey]?.[0]?.[idKey];
     if (!first) {
@@ -450,7 +414,7 @@ export async function createListing(
       body: JSON.stringify(inventoryItem),
     });
     if (!itemResponse.ok) {
-      throw new Error(`Creating inventory item failed: ${await itemResponse.text()}`);
+      throw new EbayApiError('Creating the listing', await itemResponse.text());
     }
   }
 
@@ -473,7 +437,7 @@ export async function createListing(
       },
     }),
   });
-  if (!offerResponse.ok) throw new Error(`Creating offer failed: ${await offerResponse.text()}`);
+  if (!offerResponse.ok) throw new EbayApiError('Creating the listing', await offerResponse.text());
   const { offerId } = await offerResponse.json();
 
   if (!publish) return { offerId };
@@ -481,7 +445,7 @@ export async function createListing(
   const publishResponse = await ebayFetch(`/sell/inventory/v1/offer/${offerId}/publish`, accessToken, {
     method: 'POST',
   });
-  if (!publishResponse.ok) throw new Error(`Publishing offer failed: ${await publishResponse.text()}`);
+  if (!publishResponse.ok) throw new EbayApiError('Publishing the listing', await publishResponse.text());
   const { listingId } = await publishResponse.json();
   return { offerId, listingId };
 }

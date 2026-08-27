@@ -4,6 +4,16 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ---
 
+## Running the tests
+
+    cd backend && npm test          # 17 tests — error translation, condition fallbacks
+    cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
+
+`npm run deploy` runs typecheck and tests before deploying.
+
+---
+
 ## Working end to end
 
 - **Listing generation.** Photos + optional notes → complete field sets for eBay, Vinted, Gumtree and FB Marketplace. Verified against the live backend. Output respects each platform's own vocabulary (eBay condition enums, Vinted's "Very good" scale, FB's "Used - like new") and inserts `[CHECK: ...]` placeholders rather than inventing details it can't see.
@@ -11,12 +21,14 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **eBay OAuth.** Connects, stores tokens in the Keychain, refreshes them.
 - **eBay listing, end to end.** ✅ **A real listing was published live on the production account on 27 Aug 2026** (an Apple Watch Sport Band). The full chain works: inventory item → category → category-valid condition → required item specifics → business policies → merchant location → offer → publish.
 - **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed.
+- **Readable errors.** eBay's numeric failures are translated into what went wrong and what to do (`lib/ebayErrors.ts`). The raw payload is kept out of the alert and attached to an "Email support" action instead.
 
 ## Not finished
 
 - **`Post to eBay` publishes immediately.** There's no way to correct a live listing from the app — you'd end it in Seller Hub. Drafts are the safe path.
 - **Item specifics are model-chosen.** Required aspects are filled by an AI call at listing time and aren't shown for review before posting. Surfacing them in the app for confirmation would be a sensible next step.
-- **No tests.** Everything so far has been verified by hand against live services.
+- **Xcode Cloud isn't wired up.** `ios/ci_scripts/ci_post_clone.sh` is ready (it runs XcodeGen, since the `.xcodeproj` isn't committed), but the workflow still has to be created in Xcode.
+- **Test coverage is partial.** 34 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 

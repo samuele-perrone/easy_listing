@@ -22,9 +22,34 @@ struct APIClient {
         var ebayDraft: EbayDraft
     }
 
-    struct APIError: LocalizedError {
+    /// A failure worth showing to a person: what went wrong, what to do about it,
+    /// and the raw payload kept aside for a support email.
+    struct APIError: LocalizedError, Identifiable {
+        var id = UUID()
         var message: String
+        var fix: String?
+        var detail: String?
+        var code: Int?
+
         var errorDescription: String? { message }
+
+        init(message: String, fix: String? = nil, detail: String? = nil, code: Int? = nil) {
+            self.message = message
+            self.fix = fix
+            self.detail = detail
+            self.code = code
+        }
+
+        /// Body for a support email — the technical detail a person shouldn't have to read.
+        var supportBody: String {
+            var lines = ["", "---", "Please keep the details below, they help us diagnose it.", ""]
+            lines.append("What failed: \(message)")
+            if let code { lines.append("eBay error code: \(code)") }
+            if let detail { lines.append("Details: \(detail)") }
+            lines.append("App version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
+            lines.append("iOS: \(UIDevice.current.systemVersion)")
+            return lines.joined(separator: "\n")
+        }
     }
 
     /// Encodes photos as base64 JPEGs small enough for the server to accept, stepping
@@ -120,14 +145,26 @@ struct APIClient {
     private static func checkOK(data: Data, response: URLResponse) throws {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            struct ErrBody: Codable { var error: String? }
-            if let serverMessage = (try? JSONDecoder().decode(ErrBody.self, from: data))?.error {
-                throw APIError(message: serverMessage)
+            struct ErrBody: Codable {
+                var error: String?
+                var fix: String?
+                var detail: String?
+                var code: Int?
+            }
+            if let body = try? JSONDecoder().decode(ErrBody.self, from: data), let message = body.error {
+                throw APIError(message: message, fix: body.fix, detail: body.detail, code: body.code)
             }
             if status == 413 {
-                throw APIError(message: "Those photos are too large to upload. Try again with fewer photos.")
+                throw APIError(
+                    message: "Those photos are too large to upload.",
+                    fix: "Try again with fewer photos."
+                )
             }
-            throw APIError(message: "Server error (HTTP \(status)).")
+            throw APIError(
+                message: "Couldn't reach the server.",
+                fix: "Check your connection and try again.",
+                detail: "HTTP \(status)"
+            )
         }
     }
 }
