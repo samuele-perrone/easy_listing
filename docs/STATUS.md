@@ -106,4 +106,4 @@ Ignore App Store Connect's **Distribution** tab entirely: screenshots, App Priva
 
 Bump `CURRENT_PROJECT_VERSION` in `ios/project.yml` before each upload — App Store Connect rejects a duplicate build number.
 
-**A public App Store release is a different project**, not a packaging step: the backend uses a single Anthropic key, so every user's generation would bill to the developer. That needs per-user billing (or per-user keys) first, and eBay may require review before a distributed app uses their API.
+**A public App Store release is a different project**, not a packaging step. Draft metadata, the review checklist, and the blockers are in [APP_STORE.md](APP_STORE.md). The blocking one is cost: the backend uses a single Anthropic key, so every user's generation bills to the developer with no metering and no ceiling.
