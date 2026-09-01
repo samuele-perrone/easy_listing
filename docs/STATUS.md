@@ -1,4 +1,4 @@
-# Status — as of 27 August 2026
+# Status — as of 1 September 2026
 
 Where the project stands, what's left, and the non-obvious things already solved.
 
@@ -27,7 +27,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 - **`Post to eBay` publishes immediately.** There's no way to correct a live listing from the app — you'd end it in Seller Hub. Drafts are the safe path.
 - **Item specifics are model-chosen.** Required aspects are filled by an AI call at listing time and aren't shown for review before posting. Surfacing them in the app for confirmation would be a sensible next step.
-- **Xcode Cloud isn't wired up.** `ios/ci_scripts/ci_post_clone.sh` is ready (it runs XcodeGen, since the `.xcodeproj` isn't committed), but the workflow still has to be created in Xcode.
+- **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Test coverage is partial.** 34 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
@@ -94,7 +94,9 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ## TestFlight distribution
 
-✅ **Working as of 27 Aug 2026.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and build 1 uploaded successfully. This replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
+✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, build 1 uploaded, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
+
+Two steps that are easy to miss, both of which cost time here: a tester has to be **added to an internal group** (creating the group isn't enough — the group's Invites column reads `–` until someone is in it), and a newly-added tester takes **a few minutes to appear** in the TestFlight app. Use an **Internal** group; external ones need Beta App Review first.
 
 To ship a new build: `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
 
