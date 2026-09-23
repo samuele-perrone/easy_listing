@@ -38,7 +38,18 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 **Model provider is resolved at runtime** in `backend/lib/model.ts`, in this order: `ANTHROPIC_API_KEY` → `GOOGLE_GENERATIVE_AI_API_KEY` → Vercel AI Gateway. The gateway was the original design but its free tier blocks *every* model, including ones tagged free — hence the direct-provider fallbacks.
 
-**Production runs on Gemini's free tier** since 23 Sep 2026. Both keys were configured, so the precedence above meant every generation silently billed to Anthropic; `ANTHROPIC_API_KEY` was removed from the production environment and `gemini-2.5-flash` took over. The code is unchanged — setting the key again reverts it. Two consequences worth remembering: the free tier's quota is **per project, shared by every install**, not per user; and free-tier terms let Google use submitted content to improve its services, which is why `/privacy` names Google and says so. `GENERATION_MODEL` is still `anthropic/claude-sonnet-5` but is only read in the unreachable AI Gateway branch.
+**Production runs on Gemini's free tier** since 23 Sep 2026, verified working end to end (a real listing generated through the live endpoint, all four platforms, schema-valid) — but see the capacity gotcha below; it is not reliable. Both keys were configured, so the precedence above meant every generation silently billed to Anthropic; `ANTHROPIC_API_KEY` was removed from the production environment and `gemini-2.5-flash` took over. The code is unchanged — setting the key again reverts it. Two consequences worth remembering: the free tier's quota is **per project, shared by every install**, not per user; and free-tier terms let Google use submitted content to improve its services, which is why `/privacy` names Google and says so. `GENERATION_MODEL` is still `anthropic/claude-sonnet-5` but is only read in the unreachable AI Gateway branch.
+
+---
+
+## Model provider gotchas
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `/api/generate` returns 500, log shows `404 NOT_FOUND … no longer available to new users` | Google retires Gemini model ids and 404s them for callers who hadn't used them before. `gemini-2.5-flash` was pinned as the default; Google's own error names the replacement. | Default is now `gemini-3.6-flash` in `lib/model.ts`; `GOOGLE_MODEL` overrides it. Don't pin an old id — read the 404's message, it tells you what to use. |
+| `AI_RetryError: Failed after 3 attempts … This model is currently experiencing high demand` | Free-tier Gemini has no capacity guarantee. The AI SDK's own 3 retries happen within seconds, which is too short a window to ride out an overload. | **Not fixed.** Measured 23 Sep 2026: 2 of 3 live requests failed this way, the third succeeded. See below. |
+
+**Free-tier capacity is the cost of going free.** The app's main flow intermittently 500s, and the user-facing message ("Listing generation failed. Please try again.") is accurate but the retry is manual. Options, none implemented yet: widen the retry window with real backoff (tens of seconds, within the 300s `maxDuration`); or make provider selection a *fallback chain* rather than the current strict precedence, so an overloaded Gemini falls through to Anthropic and only then costs money. The precedence order as written can't do that — the first configured key wins outright.
 
 **eBay tokens live only on the device**, in the iOS Keychain. The server never persists them; the app sends the access token with each request. This is also what the privacy policy claims, so keep it true.
 

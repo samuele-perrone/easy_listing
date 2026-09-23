@@ -14,7 +14,7 @@ Photograph an item once, get ready-to-post listings for **eBay, Vinted, Gumtree 
 ```
 iPhone (SwiftUI)                    Vercel (Next.js)                 External
 ────────────────                    ────────────────                 ────────
-take/pick photos  ──POST /api/generate──►  Gemini 2.5 Flash ────────► Google AI API
+take/pick photos  ──POST /api/generate──►  Gemini 3.6 Flash ────────► Google AI API
                   ◄── per-platform fields ──┘
   │
   ├─ eBay tab ────► POST /api/ebay/post ──► upload photos ─────────► Vercel Blob
@@ -92,6 +92,7 @@ See `backend/.env.example`. Set on Vercel for the `production` target.
 |---|---|
 | `ANTHROPIC_API_KEY` | Highest-priority provider. **Not set in production** — removed 23 Sep 2026 so generation runs free on Gemini. Set it to switch back. |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | What production actually uses: Gemini 2.5 Flash, free tier, no card |
+| `GOOGLE_MODEL` | Overrides the Gemini model id. Google 404s retired ids — the error names the replacement |
 | `GENERATION_MODEL` | Overrides the model when using the AI Gateway |
 | `BLOB_READ_WRITE_TOKEN` | Set automatically by the attached Blob store |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | Production App ID and Cert ID |
