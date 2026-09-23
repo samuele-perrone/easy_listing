@@ -14,7 +14,7 @@ Compounding it, `/api/generate` has no auth, no rate limit and no per-user meter
 - **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
 - **Free tier with hard limits.** e.g. 10 items/month per install, tracked server-side. Simplest to build, caps the damage, still costs something — and needs a paid provider key underneath it, because 20/day across all users is not a tier anyone can ship on.
 
-Whichever is chosen, the unbuilt piece on the provider side is a **fallback chain** (Gemini free → paid key on exhaustion) rather than today's strict precedence in `resolveModel()`. See `STATUS.md`.
+On the provider side the **fallback chain** (Gemini free → paid key on refusal) is now built, in `lib/provider.ts`. It is inert until `ANTHROPIC_API_KEY` is set in production. It fixes reliability, not economics: with it, users stop seeing failures; without per-user metering, the bill it creates is still unbounded. Both pieces are needed before a public release. See `STATUS.md`.
 
 **2. eBay's API terms.** The current setup uses one eBay app credential with each user OAuthing their own account, which is the intended pattern — but eBay's API License Agreement has separate terms for distributed applications, and production keysets can be subject to compliance review at higher call volumes. Worth confirming with eBay before launch rather than after.
 

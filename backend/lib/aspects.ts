@@ -1,7 +1,6 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import { resolveModel } from '@/lib/model';
-import { withBackoff } from '@/lib/backoff';
+import { runWithProviders } from '@/lib/provider';
 
 export interface CategoryAspect {
   name: string;
@@ -40,11 +39,11 @@ export async function chooseAspectValues(
     })
     .join('\n');
 
-  const { output } = await withBackoff(
-    () =>
+  const { output } = await runWithProviders(
+    (model) =>
       generateText({
         maxRetries: 0,
-        model: resolveModel(),
+        model,
         system:
           'You fill in eBay item specifics for a listing. Answer only from what the title and ' +
           'description support. Where a list of allowed values is given you must copy one of them ' +
@@ -58,8 +57,7 @@ export async function chooseAspectValues(
       // the app's eBay call gives up after 180s — so it gets a small slice.
       budgetMs: 40_000,
       delaysMs: [2_000, 6_000, 15_000],
-      onRetry: ({ attempt, waitMs }) =>
-        console.warn(`aspects: provider busy, retry ${attempt} in ${waitMs}ms`),
+      label: 'aspects',
     },
   );
 

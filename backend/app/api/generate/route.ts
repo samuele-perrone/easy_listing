@@ -1,7 +1,7 @@
 import { generateText, Output } from 'ai';
 import { generateResultSchema } from '@/lib/schema';
-import { resolveModel } from '@/lib/model';
-import { isExhaustedForTheDay, withBackoff } from '@/lib/backoff';
+import { isExhaustedForTheDay } from '@/lib/backoff';
+import { runWithProviders } from '@/lib/provider';
 
 export const maxDuration = 300;
 
@@ -30,13 +30,13 @@ export async function POST(request: Request) {
     }
 
     const note = notes?.join(' ').trim();
-    const { output } = await withBackoff(
-      () =>
+    const { output } = await runWithProviders(
+      (model) =>
         generateText({
           // Own the retry timing rather than letting the SDK burn all three
           // attempts in a few seconds — see lib/backoff.ts.
           maxRetries: 0,
-          model: resolveModel(),
+          model,
           output: Output.object({ schema: generateResultSchema }),
           system: SYSTEM_PROMPT,
           messages: [
@@ -58,13 +58,7 @@ export async function POST(request: Request) {
             },
           ],
         }),
-      {
-        onRetry: ({ attempt, waitMs, error }) =>
-          console.warn(
-            `generate: provider busy, retry ${attempt} in ${waitMs}ms —`,
-            error instanceof Error ? error.message : error,
-          ),
-      },
+      { label: 'generate' },
     );
 
     return Response.json(output);

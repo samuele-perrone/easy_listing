@@ -15,6 +15,7 @@ Photograph an item once, get ready-to-post listings for **eBay, Vinted, Gumtree 
 iPhone (SwiftUI)                    Vercel (Next.js)                 External
 ────────────────                    ────────────────                 ────────
 take/pick photos  ──POST /api/generate──►  Gemini 3.6 Flash ────────► Google AI API
+                                        └─ on refusal ─► Claude Sonnet 5 ─► Anthropic API
                   ◄── per-platform fields ──┘
   │
   ├─ eBay tab ────► POST /api/ebay/post ──► upload photos ─────────► Vercel Blob
@@ -90,8 +91,8 @@ See `backend/.env.example`. Set on Vercel for the `production` target.
 
 | Variable | Notes |
 |---|---|
-| `ANTHROPIC_API_KEY` | Highest-priority provider. **Not set in production** — removed 23 Sep 2026 so generation runs free on Gemini. Set it to switch back. |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | What production actually uses: Gemini 2.5 Flash, free tier, no card |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | First in the chain: Gemini, free tier, no card. What production uses today |
+| `ANTHROPIC_API_KEY` | Paid fallback, used only for what the free tier refused. **Not set in production**, so there is currently no fallback |
 | `GOOGLE_MODEL` | Overrides the Gemini model id. Google 404s retired ids — the error names the replacement |
 | `GENERATION_MODEL` | Overrides the model when using the AI Gateway |
 | `BLOB_READ_WRITE_TOKEN` | Set automatically by the attached Blob store |
