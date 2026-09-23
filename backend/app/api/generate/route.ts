@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
 import { generateResultSchema } from '@/lib/schema';
 import { resolveModel } from '@/lib/model';
+import { isExhaustedForTheDay, withBackoff } from '@/lib/backoff';
 
 export const maxDuration = 300;
 
@@ -29,33 +30,59 @@ export async function POST(request: Request) {
     }
 
     const note = notes?.join(' ').trim();
-    const { output } = await generateText({
-      model: resolveModel(),
-      output: Output.object({ schema: generateResultSchema }),
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            ...images.slice(0, 12).map((image) => ({
-              type: 'file' as const,
-              mediaType: 'image/jpeg',
-              data: image,
-            })),
+    const { output } = await withBackoff(
+      () =>
+        generateText({
+          // Own the retry timing rather than letting the SDK burn all three
+          // attempts in a few seconds — see lib/backoff.ts.
+          maxRetries: 0,
+          model: resolveModel(),
+          output: Output.object({ schema: generateResultSchema }),
+          system: SYSTEM_PROMPT,
+          messages: [
             {
-              type: 'text' as const,
-              text: note
-                ? `Create the listings for this item. Seller notes: ${note}`
-                : 'Create the listings for this item.',
+              role: 'user',
+              content: [
+                ...images.slice(0, 12).map((image) => ({
+                  type: 'file' as const,
+                  mediaType: 'image/jpeg',
+                  data: image,
+                })),
+                {
+                  type: 'text' as const,
+                  text: note
+                    ? `Create the listings for this item. Seller notes: ${note}`
+                    : 'Create the listings for this item.',
+                },
+              ],
             },
           ],
-        },
-      ],
-    });
+        }),
+      {
+        onRetry: ({ attempt, waitMs, error }) =>
+          console.warn(
+            `generate: provider busy, retry ${attempt} in ${waitMs}ms —`,
+            error instanceof Error ? error.message : error,
+          ),
+      },
+    );
 
     return Response.json(output);
   } catch (error) {
     console.error('generate failed', error);
+
+    // "Try again" is wrong advice for the daily cap — nothing clears it until
+    // the quota resets, so say so rather than sending the seller round a loop.
+    if (isExhaustedForTheDay(error)) {
+      return Response.json(
+        {
+          error: 'Today’s listing generations have run out.',
+          fix: 'The free allowance resets daily. Try again tomorrow, or add a paid API key to the backend.',
+        },
+        { status: 429 },
+      );
+    }
+
     return Response.json({ error: 'Listing generation failed. Please try again.' }, { status: 500 });
   }
 }

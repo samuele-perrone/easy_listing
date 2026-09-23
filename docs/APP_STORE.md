@@ -6,11 +6,15 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 
 ## Blockers to resolve before submitting
 
-**1. An open, unmetered endpoint — the real one.** `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary. Since 23 Sep 2026 production runs on Gemini's free tier, so this is no longer an unbounded bill — but the free quota is **per project, shared across all installs**, so a single abuser (or simply enough real users) takes generation down for everyone. Pick one before launch:
+**1. Generation capacity — measured, and it's tiny.** Production runs on Gemini's free tier, which allows **20 generations per day per project** — not per user. Shared across every install, that is roughly two testers' worth of a single afternoon, and the free tier also had sustained stretches with no capacity at all (0 of 5 requests succeeded on 23 Sep 2026). A public release on this tier would fail for almost everyone who opened the app.
+
+Compounding it, `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — so the 20/day pool is exhaustible by anyone who finds the endpoint, not just by real users. Pick one before launch:
 
 - **Subscription via in-app purchase.** Apple takes 15–30% and requires StoreKit; a server-side receipt check would gate `/api/generate`.
 - **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
-- **Free tier with hard limits.** e.g. 10 items/month per install, tracked server-side. Simplest to build, caps the damage, still costs something.
+- **Free tier with hard limits.** e.g. 10 items/month per install, tracked server-side. Simplest to build, caps the damage, still costs something — and needs a paid provider key underneath it, because 20/day across all users is not a tier anyone can ship on.
+
+Whichever is chosen, the unbuilt piece on the provider side is a **fallback chain** (Gemini free → paid key on exhaustion) rather than today's strict precedence in `resolveModel()`. See `STATUS.md`.
 
 **2. eBay's API terms.** The current setup uses one eBay app credential with each user OAuthing their own account, which is the intended pattern — but eBay's API License Agreement has separate terms for distributed applications, and production keysets can be subject to compliance review at higher call volumes. Worth confirming with eBay before launch rather than after.
 

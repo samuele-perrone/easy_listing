@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { resolveModel } from '@/lib/model';
+import { withBackoff } from '@/lib/backoff';
 
 export interface CategoryAspect {
   name: string;
@@ -39,16 +40,28 @@ export async function chooseAspectValues(
     })
     .join('\n');
 
-  const { output } = await generateText({
-    model: resolveModel(),
-    system:
-      'You fill in eBay item specifics for a listing. Answer only from what the title and ' +
-      'description support. Where a list of allowed values is given you must copy one of them ' +
-      'exactly. If the item genuinely does not say, choose the most likely value for this kind ' +
-      'of product rather than leaving it blank — eBay rejects the listing without it.',
-    output: Output.object({ schema: aspectAnswerSchema }),
-    prompt: `Title: ${title}\n\nDescription: ${description}\n\nItem specifics to fill:\n${spec}`,
-  });
+  const { output } = await withBackoff(
+    () =>
+      generateText({
+        maxRetries: 0,
+        model: resolveModel(),
+        system:
+          'You fill in eBay item specifics for a listing. Answer only from what the title and ' +
+          'description support. Where a list of allowed values is given you must copy one of them ' +
+          'exactly. If the item genuinely does not say, choose the most likely value for this kind ' +
+          'of product rather than leaving it blank — eBay rejects the listing without it.',
+        output: Output.object({ schema: aspectAnswerSchema }),
+        prompt: `Title: ${title}\n\nDescription: ${description}\n\nItem specifics to fill:\n${spec}`,
+      }),
+    {
+      // This is one step of createListing's chain, not the whole request, and
+      // the app's eBay call gives up after 180s — so it gets a small slice.
+      budgetMs: 40_000,
+      delaysMs: [2_000, 6_000, 15_000],
+      onRetry: ({ attempt, waitMs }) =>
+        console.warn(`aspects: provider busy, retry ${attempt} in ${waitMs}ms`),
+    },
+  );
 
   const result: Record<string, string[]> = {};
   for (const answer of output.aspects) {
