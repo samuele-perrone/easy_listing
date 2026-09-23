@@ -6,10 +6,10 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 
 ## Blockers to resolve before submitting
 
-**1. Cost — the real one.** Every user's generation bills to the single `ANTHROPIC_API_KEY` on the server. There's no per-user metering, no limit, and no revenue. One user listing ten items is pennies; a thousand users is a bill with no ceiling. Pick one before launch:
+**1. An open, unmetered endpoint — the real one.** `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary. Since 23 Sep 2026 production runs on Gemini's free tier, so this is no longer an unbounded bill — but the free quota is **per project, shared across all installs**, so a single abuser (or simply enough real users) takes generation down for everyone. Pick one before launch:
 
 - **Subscription via in-app purchase.** Apple takes 15–30% and requires StoreKit; a server-side receipt check would gate `/api/generate`.
-- **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost to you, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
+- **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
 - **Free tier with hard limits.** e.g. 10 items/month per install, tracked server-side. Simplest to build, caps the damage, still costs something.
 
 **2. eBay's API terms.** The current setup uses one eBay app credential with each user OAuthing their own account, which is the intended pattern — but eBay's API License Agreement has separate terms for distributed applications, and production keysets can be subject to compliance review at higher call volumes. Worth confirming with eBay before launch rather than after.
@@ -17,7 +17,7 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 **3. App Review risks.** None fatal, all worth preparing for:
 
 - **2.1 Completeness** — a reviewer without an eBay account must still see the app work. Generation works without connecting eBay, so this should pass; note it in review notes.
-- **5.1.1 Privacy** — photos go to a third party (Anthropic). Must be declared in the App Privacy questionnaire and covered by the privacy policy (`/privacy` already says so).
+- **5.1.1 Privacy** — photos go to a third party (Google). Must be declared in the App Privacy questionnaire and covered by the privacy policy (`/privacy` already says so). Note the free tier lets Google use submitted content to improve its services; a paid tier would remove that clause, and the questionnaire answer should match whichever is live at submission.
 - **5.2.1 Third-party trademarks** — the app names eBay, Vinted, Gumtree and Facebook Marketplace. Nominative use is generally fine, but leading with those names in the App Store *title or subtitle* invites rejection. Keep them in the description body, describing what the app does.
 - **3.1.1 In-app purchase** — if you charge, it must go through Apple's IAP, not an external payment link.
 
@@ -104,7 +104,7 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
     All other marketplaces use a copy-to-clipboard flow because they have no public
     seller API.
 
-    Photos are sent to Anthropic's API to generate the listing text. This is described
+    Photos are sent to Google's Gemini API to generate the listing text. This is described
     in the privacy policy. No account is created and no personal data is collected.
 
 ### Screenshots to capture

@@ -13,7 +13,7 @@ export default function Privacy() {
     >
       <h1>Privacy Policy — Easy Listing</h1>
       <p>
-        <em>Last updated: 19 August 2026</em>
+        <em>Last updated: 23 September 2026</em>
       </p>
 
       <p>
@@ -25,9 +25,12 @@ export default function Privacy() {
       <h2>What the app handles</h2>
       <ul>
         <li>
-          <strong>Photos and descriptions of items being sold.</strong> Photos are sent to an AI
-          provider (Anthropic) to generate listing text, and are uploaded to Vercel Blob storage so
-          that eBay can display them on a listing. They are not used for any other purpose.
+          <strong>Photos and descriptions of items being sold.</strong> Photos are sent to
+          Google&apos;s Gemini API to generate listing text, and are uploaded to Vercel Blob storage
+          so that eBay can display them on a listing. They are not used for any other purpose by
+          this app. Generation currently runs on Google&apos;s free API tier, under which Google may
+          use submitted content to improve its services; see Google&apos;s own terms for what that
+          covers.
         </li>
         <li>
           <strong>eBay account access.</strong> When you connect an eBay account, eBay issues OAuth
@@ -51,7 +54,7 @@ export default function Privacy() {
 
       <h2>Third parties</h2>
       <p>
-        Data is processed by Anthropic (listing generation), Vercel (hosting and image storage), and
+        Data is processed by Google (listing generation), Vercel (hosting and image storage), and
         eBay (listing creation). Each handles data under its own privacy policy. Nothing is sold or
         shared with anyone else.
       </p>

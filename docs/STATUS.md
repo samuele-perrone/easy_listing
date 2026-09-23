@@ -1,4 +1,4 @@
-# Status — as of 1 September 2026
+# Status — as of 23 September 2026
 
 Where the project stands, what's left, and the non-obvious things already solved.
 
@@ -36,7 +36,9 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 **Only eBay gets API posting.** Vinted, Gumtree and FB Marketplace have no public seller API, and automating them violates their terms and risks account bans. The deliberate design is: generate every field, then a guided copy-paste flow. This was chosen explicitly, not by omission.
 
-**Model provider is resolved at runtime** in `backend/app/api/generate/route.ts`, in this order: `ANTHROPIC_API_KEY` → `GOOGLE_GENERATIVE_AI_API_KEY` → Vercel AI Gateway. The gateway was the original design but its free tier blocks *every* model, including ones tagged free — hence the direct-provider fallbacks.
+**Model provider is resolved at runtime** in `backend/lib/model.ts`, in this order: `ANTHROPIC_API_KEY` → `GOOGLE_GENERATIVE_AI_API_KEY` → Vercel AI Gateway. The gateway was the original design but its free tier blocks *every* model, including ones tagged free — hence the direct-provider fallbacks.
+
+**Production runs on Gemini's free tier** since 23 Sep 2026. Both keys were configured, so the precedence above meant every generation silently billed to Anthropic; `ANTHROPIC_API_KEY` was removed from the production environment and `gemini-2.5-flash` took over. The code is unchanged — setting the key again reverts it. Two consequences worth remembering: the free tier's quota is **per project, shared by every install**, not per user; and free-tier terms let Google use submitted content to improve its services, which is why `/privacy` names Google and says so. `GENERATION_MODEL` is still `anthropic/claude-sonnet-5` but is only read in the unreachable AI Gateway branch.
 
 **eBay tokens live only on the device**, in the iOS Keychain. The server never persists them; the app sends the access token with each request. This is also what the privacy policy claims, so keep it true.
 
@@ -106,4 +108,4 @@ Ignore App Store Connect's **Distribution** tab entirely: screenshots, App Priva
 
 Bump `CURRENT_PROJECT_VERSION` in `ios/project.yml` before each upload — App Store Connect rejects a duplicate build number.
 
-**A public App Store release is a different project**, not a packaging step. Draft metadata, the review checklist, and the blockers are in [APP_STORE.md](APP_STORE.md). The blocking one is cost: the backend uses a single Anthropic key, so every user's generation bills to the developer with no metering and no ceiling.
+**A public App Store release is a different project**, not a packaging step. Draft metadata, the review checklist, and the blockers are in [APP_STORE.md](APP_STORE.md). The blocking one is that `/api/generate` has no auth, rate limit or metering, and the backend URL is hardcoded in the shipped binary (`APIClient.swift`). On Gemini's free tier that no longer means an unbounded bill, but the shared per-project quota is still exhaustible by anyone who finds the endpoint.
