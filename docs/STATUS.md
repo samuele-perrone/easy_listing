@@ -10,7 +10,7 @@ Where the project stands, what's left, and the non-obvious things already solved
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
 
-`npm run deploy` runs typecheck and tests before deploying.
+`npm run deploy` (from `backend/`) runs typecheck and tests before deploying.
 
 ---
 
@@ -70,7 +70,7 @@ So the choice is now clear rather than open:
 
 **The fallback chain is built** (`lib/provider.ts`) but **inert in production**, because `ANTHROPIC_API_KEY` is not set — a chain of one provider has nothing to fall back to. Adding the key is what turns it on:
 
-    vercel env add ANTHROPIC_API_KEY production   # then redeploy, from the repo root
+    vercel env add ANTHROPIC_API_KEY production   # then, from backend/: npm run deploy
 
 After that, a free-tier refusal costs a Sonnet call instead of a failed request. Note the flip side: if the free tier is out for a whole day, *everything* bills to Anthropic — the chain bounds the failure rate, not the spend.
 
@@ -106,7 +106,8 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ## Environment traps
 
-- **Deploy from the repo root**, never from `backend/`. Vercel's configured root directory is already `backend`, so deploying from inside it creates a stray project named `backend`. This happened twice; both were deleted.
+- **`npm run deploy` is run from `backend/`**, and the script cds to the repo root itself before calling `vercel`. Running it from the repo root fails with `ENOENT: no such file or directory, open '.../package.json'` — there is no package.json there. The earlier note here said "deploy from the repo root", which is true of the `vercel` invocation and wrong as an instruction.
+- **Never call bare `vercel deploy` from inside `backend/`.** Vercel's configured root directory is already `backend`, so that creates a stray project named `backend`. This happened twice; both were deleted. This is what the script's `cd ..` is for.
 - **Vercel returns `[SENSITIVE]` placeholders** for sensitive env vars, so `vercel env pull` can't be used to test with real credentials locally.
 - **Env changes need a redeploy**, and the deploy must be created *after* the change. One redeploy raced an env update and silently used the old value.
 - **`vercel project rm` is interactive** and ignores `--yes`. Piping `yes |` into it loops forever — use the REST API to delete a project.

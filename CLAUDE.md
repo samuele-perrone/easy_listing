@@ -23,8 +23,10 @@ npm run dev
 npm run typecheck          # tsc --noEmit — run before every deploy
 npm run build
 
-# Deploy — use this script; it typechecks and deploys from the repo root.
-# Running `vercel deploy` from backend/ creates a stray project (done 3x already).
+# Deploy — run this from backend/ like the rest of this block. The script
+# typechecks, tests, then cds to the repo root itself before calling vercel.
+# Running it from the repo root fails: there is no package.json there.
+# Running bare `vercel deploy` from backend/ creates a stray project (done 3x already).
 npm run deploy
 
 # iOS (from ios/)

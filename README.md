@@ -83,7 +83,7 @@ xcrun devicectl device install app --device <DEVICE_UUID> \
 
 ### Deploying
 
-Push to `main` — that's it. To deploy manually, run `npm run deploy` from `backend/` — it typechecks and deploys from the repo root. Never run `vercel deploy` from inside `backend/`; that creates a stray project, since Vercel's configured root directory is already `backend`.
+Push to `main` — that's it. To deploy manually, run `npm run deploy` from `backend/` — it typechecks, tests, then cds to the repo root itself before calling `vercel`. Never run `vercel deploy` from inside `backend/`; that creates a stray project, since Vercel's configured root directory is already `backend`.
 
 ## Environment variables
 
