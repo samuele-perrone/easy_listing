@@ -128,7 +128,14 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 - **Installs fail while the phone is locked** (`kAMDMobileImageMounterDeviceLocked`). Unlock first; disabling auto-lock helps.
 - **First launch needs the certificate trusted** at Settings → General → VPN & Device Management.
 - **Free personal signing expires after 7 days.** When the app stops opening, rebuild and reinstall — history survives, since SwiftData is on-device.
-- `EasyListing.xcodeproj` is gitignored; run `xcodegen generate` after cloning.
+- **The app icon is generated from `ios/icon.svg`**, so it can be edited as text rather than redrawn. To rebuild it:
+
+      qlmanage -t -s 1024 -o . icon.svg && mv icon.svg.png icon.png
+      sips -s format jpeg -s formatOptions best icon.png --out icon.jpg
+      sips -s format png icon.jpg --out EasyListing/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+
+  The JPEG hop is not pointless: the App Store rejects an icon with an alpha channel, `qlmanage` always writes one, and `sips` has no flag to drop it — a JPEG round trip is what actually clears it. Check with `sips -g hasAlpha`; it must read `no`.
+- `EasyListing.xcodeproj` is **committed**, not gitignored — Xcode Cloud validates the project reference before it runs the post-clone script, so generating it there is too late. `project.yml` is still the source of truth: run `xcodegen generate` after editing it and commit the result. (This line said "gitignored" until 25 Sep 2026, contradicting the note under "Not finished".)
 
 ---
 
