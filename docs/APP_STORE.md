@@ -35,7 +35,7 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 |---|---|
 | App icon (1024×1024, no alpha) | ✅ done |
 | Privacy policy URL | ✅ `https://easy-listing-chi.vercel.app/privacy` |
-| Support URL | ❌ needed — a simple page with a contact address is enough |
+| Support URL | ✅ `https://easy-listing-chi.vercel.app/support` — contact address plus the failures a user is most likely to hit |
 | Screenshots — 6.9" and 6.5" iPhone | ❌ needed, 3–10 each |
 | App Privacy questionnaire | ❌ needed — declare Photos, used for app functionality, not linked to identity |
 | Age rating questionnaire | ❌ needed — expect 4+ |
