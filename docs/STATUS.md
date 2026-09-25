@@ -138,11 +138,17 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ## TestFlight distribution
 
-✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, build 1 uploaded, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
+✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
+
+**Build 2 uploaded 25 Sep 2026** (delivery UUID `e5cae045-19c9-454f-b850-992cf73b0b03`), archive → export → upload all clean via `ios/release.sh`. The binary is **identical to build 1** — no iOS file changed between them; it exists to refresh the build and its 90-day window. Every change since build 1 has been backend-side, which reaches existing installs without a new build at all. Worth pausing on before the next upload: if the work was backend-only, a TestFlight release ships nothing.
 
 Two steps that are easy to miss, both of which cost time here: a tester has to be **added to an internal group** (creating the group isn't enough — the group's Invites column reads `–` until someone is in it), and a newly-added tester takes **a few minutes to appear** in the TestFlight app. Use an **Internal** group; external ones need Beta App Review first.
 
-To ship a new build: `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
+To ship a new build: bump `CURRENT_PROJECT_VERSION` in `ios/project.yml`, then `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
+
+There are **two** keys in that directory. `5LGP386KP6` is the one that works — `WTZ5R5WGCQ` is stale or for something else. The issuer ID is a UUID that appears nowhere on disk, so it has to come from App Store Connect → Users and Access → Integrations, or from wherever you've stored it. Neither belongs in the repo.
+
+`release.sh` takes about 2 minutes end to end (archive ~1m40s, export ~2s, upload ~5s), then 5–15 minutes of processing before the build appears in TestFlight.
 
 `ios/refresh.sh` — the free-signing rebuild/reinstall script — is now redundant, but kept in case the membership lapses.
 
