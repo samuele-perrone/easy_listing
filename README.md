@@ -15,7 +15,8 @@ Photograph an item once, get ready-to-post listings for **eBay, Vinted, Gumtree 
 iPhone (SwiftUI)                    Vercel (Next.js)                 External
 ────────────────                    ────────────────                 ────────
 take/pick photos  ──POST /api/generate──►  Gemini 3.6 Flash ────────► Google AI API
-                                        └─ on refusal ─► Claude Sonnet 5 ─► Anthropic API
+                                        └─ on refusal, the next
+                                           free model in the chain
                   ◄── per-platform fields ──┘
   │
   ├─ eBay tab ────► POST /api/ebay/post ──► upload photos ─────────► Vercel Blob
@@ -91,9 +92,10 @@ See `backend/.env.example`. Set on Vercel for the `production` target.
 
 | Variable | Notes |
 |---|---|
-| `GOOGLE_GENERATIVE_AI_API_KEY` | First in the chain: Gemini, free tier, no card. What production uses today |
-| `ANTHROPIC_API_KEY` | Paid fallback, used only for what the free tier refused. **Not set in production**, so there is currently no fallback |
-| `GOOGLE_MODEL` | Overrides the Gemini model id. Google 404s retired ids — the error names the replacement |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | The only provider key set. Gemini, free tier, no card |
+| `GOOGLE_MODELS` | Free models tried in order. The 20/day cap is *per model*, so each id adds 20 more free generations. Currently `gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite` — 60/day |
+| `ANTHROPIC_API_KEY` | Optional paid safety net. **Deliberately unset**: this deployment is free-only |
+| `GOOGLE_MODEL` | Pins a single Gemini id (superseded by `GOOGLE_MODELS`). Google 404s retired ids — the error names the replacement |
 | `GENERATION_MODEL` | Overrides the model when using the AI Gateway |
 | `BLOB_READ_WRITE_TOKEN` | Set automatically by the attached Blob store |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | Production App ID and Cert ID |

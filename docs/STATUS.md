@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 46 tests — error translation, condition fallbacks, provider backoff and fallback
+    cd backend && npm test          # 49 tests — error translation, condition fallbacks, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
 
@@ -28,9 +28,9 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **`Post to eBay` publishes immediately.** There's no way to correct a live listing from the app — you'd end it in Seller Hub. Drafts are the safe path.
 - **Item specifics are model-chosen.** Required aspects are filled by an AI call at listing time and aren't shown for review before posting. Surfacing them in the app for confirmation would be a sensible next step.
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
-- **Provider reliability.** Generation runs on Gemini's free tier: 20/day per project, and periodically no capacity at all. `lib/backoff.ts` absorbs blips and `lib/provider.ts` can fall through to a paid key — but that fallback is inert until `ANTHROPIC_API_KEY` is set in production, so today a free-tier refusal is still a failed request.
+- **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - **Long requests sometimes lose the connection.** Twice during testing a request that was still retrying server-side returned no response to `curl` (at 60s and at 121s) while the function ran on and logged normally. The function holds the connection open with no bytes sent for up to 100s, which intermediaries may not tolerate. Unconfirmed whether the iOS client sees this; if a "couldn't reach the server" report shows up with a healthy log, this is the first suspect.
-- **Test coverage is partial.** 63 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 66 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
@@ -47,7 +47,7 @@ Two details worth keeping:
 - **The budget is shared across the chain**, each provider taking an equal slice of what remains and the last taking the rest. A quota rejection costs ~1s and hands almost the whole budget to the fallback; a slow overload can't eat the budget and leave the fallback no room.
 - **Only failures the *provider* returned fall through.** A `TypeError` from our own prompt building stops there — the paid key would fail the same way and bill for it.
 
-**Production runs on Gemini's free tier** since 23 Sep 2026. Verified working end to end — a real request through the live endpoint returned schema-valid fields for all four platforms, with a flaw from the seller notes carried into the condition text. But it is **not reliable enough for anyone but you**: see the provider gotchas below for the 20-per-day cap and the sustained capacity failures. Both keys were configured, so the precedence above meant every generation silently billed to Anthropic; `ANTHROPIC_API_KEY` was removed from the production environment and `gemini-2.5-flash` took over. The code is unchanged — setting the key again reverts it. Two consequences worth remembering: the free tier's quota is **per project, shared by every install**, not per user; and free-tier terms let Google use submitted content to improve its services, which is why `/privacy` names Google and says so. `GENERATION_MODEL` is still `anthropic/claude-sonnet-5` but is only read in the unreachable AI Gateway branch.
+**Production runs on Gemini's free tier only** since 23 Sep 2026, across three free models since 25 Sep. Verified working end to end — a real request through the live endpoint returned schema-valid fields for all four platforms, with a flaw from the seller notes carried into the condition text. But it is **not reliable enough for anyone but you**: see the provider gotchas below for the 20-per-day cap and the sustained capacity failures. Both keys were configured, so the precedence above meant every generation silently billed to Anthropic; `ANTHROPIC_API_KEY` was removed from the production environment and `gemini-2.5-flash` took over. The code is unchanged — setting the key again reverts it. Two consequences worth remembering: the free tier's quota is **per project, shared by every install**, not per user; and free-tier terms let Google use submitted content to improve its services, which is why `/privacy` names Google and says so. `GENERATION_MODEL` is still `anthropic/claude-sonnet-5` but is only read in the unreachable AI Gateway branch.
 
 ---
 
@@ -58,7 +58,8 @@ Two details worth keeping:
 | `/api/generate` returns 500, log shows `404 NOT_FOUND … no longer available to new users` | Google retires Gemini model ids and 404s them for callers who hadn't used them before. `gemini-2.5-flash` was pinned as the default; Google's own error names the replacement. | Default is now `gemini-3.6-flash` in `lib/model.ts`; `GOOGLE_MODEL` overrides it. Don't pin an old id — read the 404's message, it tells you what to use. |
 | `AI_RetryError: Failed after 3 attempts … This model is currently experiencing high demand` | Free-tier Gemini has no capacity guarantee. The AI SDK's own 3 retries happen within seconds, which is too short a window to ride out an overload. | `lib/backoff.ts` — model calls pass `maxRetries: 0` and retry through `withBackoff()` instead, waiting 2s → 6s → 15s → 30s (jittered) inside a budget |
 | Every generation 500s after ~90s, log says `high demand` | Not a spike. Free-tier capacity for `gemini-3.6-flash` was unavailable for a sustained run — 0 of 5 requests succeeded, each having exhausted the full retry budget first | Nothing to fix in our code: backoff can't manufacture capacity. This is the argument for the fallback chain below |
-| 429 `You exceeded your current quota` after ~20 generations | **The free tier allows 20 generations per project per day** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, quotaValue `20`) — not per user, per *project*, so every install shares one pool | Can't be fixed, only chosen around. The route now detects it and answers in ~1s with "Today's listing generations have run out" instead of retrying for 90s |
+| 429 `You exceeded your current quota` after ~20 generations | The free tier allows **20 generations per model, per project, per day** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, quotaValue `20`). Per *project*, so every install shares the pool — but per *model*, which is the way out | `GOOGLE_MODELS` lists several free models, each carrying its own 20/day. The route also detects exhaustion and answers in ~1s with "Today's listing generations have run out" instead of retrying for 90s |
+| A guessed Gemini id 404s: `not found for API version v1beta, or is not supported for generateContent` | Model ids can't be guessed from the version number. Probed 25 Sep 2026: `gemini-3.6-flash-lite` and `gemini-3.6-pro` **don't exist**; `gemini-3.6-flash`, `gemini-3.5-flash` and `gemini-3.5-flash-lite` all work | A bad id costs nothing — it 404s before generating, and the chain falls through — so probing is the cheap way to find valid ids. `gemini-3.5-pro` and `gemini-3.6-flash-latest` are untested |
 | A spent daily quota was being retried for the full budget | Google returns the daily cap as a **429 with `isRetryable: true` and a `retryDelay: 32s`**, indistinguishable from a per-minute rate limit by status or message. The quota id that tells them apart is in the *response body*, not the message. | `isExhaustedForTheDay()` looks for `PerDay` in the response body and treats it as terminal; per-minute limits stay retryable |
 
 **The free tier cannot carry this app, and backoff doesn't change that.** Measured over ~15 live requests on 23 Sep 2026: one success, a sustained stretch where 0 of 5 succeeded despite full retry budgets, then the 20/day quota wall. `lib/backoff.ts` is in and does its job — it rides out genuine blips, it fails fast on config errors and on the daily cap, and 17 tests cover it — but no retry policy invents capacity or quota.
@@ -68,11 +69,15 @@ So the choice is now clear rather than open:
 - **Personal use only, free.** 20 generations/day is plenty for one seller. This is where the project stands today.
 - **Anything with testers or users needs a paid key.** 20/day is a *project* pool; five testers listing a few items each exhaust it before lunch.
 
-**The fallback chain is built** (`lib/provider.ts`) but **inert in production**, because `ANTHROPIC_API_KEY` is not set — a chain of one provider has nothing to fall back to. Adding the key is what turns it on:
+**This deployment is free-only, by choice** (25 Sep 2026). No paid key is set, and the chain is filled with free models instead:
 
-    vercel env add ANTHROPIC_API_KEY production   # then, from backend/: npm run deploy
+    GOOGLE_MODELS=gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite
 
-After that, a free-tier refusal costs a Sonnet call instead of a failed request. Note the flip side: if the free tier is out for a whole day, *everything* bills to Anthropic — the chain bounds the failure rate, not the spend.
+Because the daily cap is per *model*, that is **60 free generations a day** rather than 20, and a model with no capacity falls through to the next one instead of failing the request. Ordered best-first, so quality degrades only once the better models are spent — `gemini-3.5-flash-lite` was checked by hand and produces all four platforms, a valid eBay condition enum, and keeps a flaw mentioned in the seller notes.
+
+The env var reads `Sensitive` in Vercel (that's just `vercel env add`'s default), so its value can't be read back — it's recorded above for that reason.
+
+**A paid fallback remains possible but is deliberately not configured.** `resolveModelChain()` appends an Anthropic candidate if `ANTHROPIC_API_KEY` is ever set, and `lib/provider.ts` would then pay only for what every free model refused. Setting that key is the one action that starts billing, so it shouldn't happen by accident. `GENERATION_MODEL` in the production env still reads `anthropic/claude-sonnet-5`; it's inert (only the no-direct-key gateway branch reads it) but it's the one place a Claude reference survives.
 
 **Retry budgets are bounded by the iOS client, not `maxDuration`.** `APIClient.generateListings` gives up after 120s and the eBay call after 180s, so the budgets are 100s and 40s. Raising them means editing `APIClient.swift` and shipping a new TestFlight build first — the server going quiet for longer than the phone will wait just turns a clear error into a timeout.
 

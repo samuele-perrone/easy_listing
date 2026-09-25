@@ -69,13 +69,47 @@ describe('resolveModelChain', () => {
     expect(chain[1].label).toContain('anthropic');
   });
 
+  it('lists every free model, so each contributes its own daily quota', () => {
+    // The cap is per model, so two models are 40 generations/day, not 20.
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'g';
+    process.env.GOOGLE_MODELS = 'gemini-3.6-flash, gemini-3.6-flash-lite';
+
+    const chain = resolveModelChain();
+    expect(chain).toHaveLength(2);
+    expect(chain.every((c) => !c.paid)).toBe(true);
+    expect(chain.map((c) => c.label)).toEqual([
+      'google:gemini-3.6-flash',
+      'google:gemini-3.6-flash-lite',
+    ]);
+  });
+
+  it('ignores blanks and duplicates in the model list', () => {
+    // A repeated id would share one quota pool and waste an attempt.
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'g';
+    process.env.GOOGLE_MODELS = 'a, ,a, b,';
+    expect(resolveModelChain().map((c) => c.label)).toEqual(['google:a', 'google:b']);
+  });
+
+  it('is free-only when no paid key is set, however many models are listed', () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'g';
+    process.env.GOOGLE_MODELS = 'one,two,three';
+
+    const chain = resolveModelChain();
+    expect(chain).toHaveLength(3);
+    expect(chain.some((c) => c.paid)).toBe(false);
+  });
+
   it('is a single provider when only one key is set', () => {
+    delete process.env.GOOGLE_MODELS;
     delete process.env.ANTHROPIC_API_KEY;
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'g';
     expect(resolveModelChain()).toHaveLength(1);
   });
 
   it('falls back to the gateway only when no direct key exists', () => {
+    delete process.env.GOOGLE_MODELS;
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
 
@@ -85,6 +119,7 @@ describe('resolveModelChain', () => {
   });
 
   it('never leaks a key into a label', () => {
+    delete process.env.GOOGLE_MODELS;
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'secret-google-key';
     process.env.ANTHROPIC_API_KEY = 'secret-anthropic-key';
 

@@ -6,7 +6,7 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 
 ## Blockers to resolve before submitting
 
-**1. Generation capacity — measured, and it's tiny.** Production runs on Gemini's free tier, which allows **20 generations per day per project** — not per user. Shared across every install, that is roughly two testers' worth of a single afternoon, and the free tier also had sustained stretches with no capacity at all (0 of 5 requests succeeded on 23 Sep 2026). A public release on this tier would fail for almost everyone who opened the app.
+**1. Generation capacity — measured, and it's tiny.** Production runs on Gemini's free tier, capped at 20 generations per model per day. Three free models are chained, so **60 a day, shared across every install** — not per user. That is fine for one seller and nowhere near a public release; it's roughly a handful of testers' worth of one afternoon. The free tier also had sustained stretches with no capacity at all (0 of 5 requests succeeded on 23 Sep 2026), which the chain routes around only while some model still has capacity.
 
 Compounding it, `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — so the 20/day pool is exhaustible by anyone who finds the endpoint, not just by real users. Pick one before launch:
 
@@ -14,7 +14,7 @@ Compounding it, `/api/generate` has no auth, no rate limit and no per-user meter
 - **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
 - **Free tier with hard limits.** e.g. 10 items/month per install, tracked server-side. Simplest to build, caps the damage, still costs something — and needs a paid provider key underneath it, because 20/day across all users is not a tier anyone can ship on.
 
-On the provider side the **fallback chain** (Gemini free → paid key on refusal) is now built, in `lib/provider.ts`. It is inert until `ANTHROPIC_API_KEY` is set in production. It fixes reliability, not economics: with it, users stop seeing failures; without per-user metering, the bill it creates is still unbounded. Both pieces are needed before a public release. See `STATUS.md`.
+On the provider side the **fallback chain** is built (`lib/provider.ts`) and currently filled with free models only; adding `ANTHROPIC_API_KEY` extends it to a paid safety net, which is deliberately not set. That fixes reliability, not economics: with it, users stop seeing failures; without per-user metering, the bill it creates is still unbounded. Both pieces are needed before a public release. See `STATUS.md`.
 
 **2. eBay's API terms.** The current setup uses one eBay app credential with each user OAuthing their own account, which is the intended pattern — but eBay's API License Agreement has separate terms for distributed applications, and production keysets can be subject to compliance review at higher call volumes. Worth confirming with eBay before launch rather than after.
 
