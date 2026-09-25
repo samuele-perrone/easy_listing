@@ -4,6 +4,7 @@
 // EBAY_MARKETPLACE_ID (default EBAY_GB).
 
 import { chooseAspectValues, type CategoryAspect } from '@/lib/aspects';
+import { fitEbayTitle } from '@/lib/ebayTitle';
 import { EbayApiError } from '@/lib/ebayErrors';
 import { pickCondition, safeConditionWithoutPolicy } from '@/lib/ebayConditions';
 
@@ -392,7 +393,8 @@ export async function createListing(
     availability: { shipToLocationAvailability: { quantity: 1 } },
     condition,
     product: {
-      title: draft.title.slice(0, 80),
+      // The seller can edit the title in-app, so apply the limit here too.
+      title: fitEbayTitle(draft.title),
       description: draft.description,
       imageUrls: imageUrls.slice(0, 12),
       ...(Object.keys(aspectValues).length ? { aspects: aspectValues } : {}),

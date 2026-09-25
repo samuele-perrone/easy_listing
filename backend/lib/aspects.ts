@@ -40,8 +40,9 @@ export async function chooseAspectValues(
     .join('\n');
 
   const { output } = await runWithProviders(
-    (model) =>
+    (model, abortSignal) =>
       generateText({
+        abortSignal,
         maxRetries: 0,
         model,
         system:

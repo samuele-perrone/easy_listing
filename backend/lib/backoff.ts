@@ -8,17 +8,20 @@ import { APICallError, RetryError } from 'ai';
  * 2026, 2 of 3 live requests failed that way.
  *
  * So the model calls pass `maxRetries: 0` and come through here instead, which
- * waits tens of seconds between attempts.
+ * spaces the attempts out properly.
  *
- * The budget is bounded by the *client*, not by `maxDuration`: the iOS app
- * gives up after 120s (`APIClient.generateListings`). Raising DEFAULT_BUDGET_MS
- * past that just means the phone stops listening before the server answers, so
- * the app's timeout has to go up first — and that needs a new TestFlight build.
+ * Callers set the real budget (see `lib/provider.ts`, which keeps the whole
+ * chain under a minute because longer requests tend to lose the connection
+ * before they answer). These defaults only apply if nobody says otherwise.
  */
-const DEFAULT_BUDGET_MS = 100_000;
+const DEFAULT_BUDGET_MS = 45_000;
 
-/** Waits between attempts. Grows so a long overload gets a long pause. */
-const DEFAULT_DELAYS_MS = [2_000, 6_000, 15_000, 30_000];
+/**
+ * Waits between attempts, growing so a longer outage gets a longer pause —
+ * but the whole ladder still fits inside the budget alongside the calls it
+ * separates, which is why it stops at 15s rather than carrying on to 30s.
+ */
+const DEFAULT_DELAYS_MS = [2_000, 6_000, 15_000];
 
 export interface BackoffOptions {
   /** Give up once this much time has elapsed. Never exceed the client timeout. */

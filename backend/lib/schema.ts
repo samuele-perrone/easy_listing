@@ -15,7 +15,10 @@ export const generateResultSchema = z.object({
     }),
   ),
   ebayDraft: z.object({
-    title: z.string().max(80).describe('eBay listing title, max 80 chars'),
+    // Deliberately NOT .max(80): as a validator it discarded an entire good
+    // generation over a two-character overshoot. fitEbayTitle() applies eBay's
+    // real limit instead, trimming at a word boundary.
+    title: z.string().describe('eBay listing title, aim for 80 characters or fewer'),
     description: z.string().describe('Full eBay item description'),
     condition: z
       .enum(['NEW', 'LIKE_NEW', 'USED_EXCELLENT', 'USED_VERY_GOOD', 'USED_GOOD', 'USED_ACCEPTABLE', 'FOR_PARTS_OR_NOT_WORKING'])

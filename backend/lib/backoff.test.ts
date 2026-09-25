@@ -177,8 +177,9 @@ describe('withBackoff', () => {
     const attempt = vi.fn().mockRejectedValue(OVERLOADED);
 
     await expect(withBackoff(attempt, options)).rejects.toThrow(/high demand/);
-    // Jittered, so compare the trend rather than exact values.
-    expect(waited).toHaveLength(4);
+    // Jittered, so compare the trend rather than exact values. Three waits:
+    // the ladder stops at 15s so the whole thing fits in the sub-minute budget.
+    expect(waited).toHaveLength(3);
     for (let i = 1; i < waited.length; i += 1) {
       expect(waited[i]).toBeGreaterThan(waited[i - 1]);
     }

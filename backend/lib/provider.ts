@@ -1,16 +1,47 @@
-import { APICallError, RetryError, type LanguageModel } from 'ai';
+import { APICallError, NoObjectGeneratedError, RetryError, type LanguageModel } from 'ai';
 import { resolveModelChain, type ModelCandidate } from '@/lib/model';
 import { isExhaustedForTheDay, withBackoff, type BackoffOptions } from '@/lib/backoff';
 
 /**
- * Budget for the whole chain. Bounded by the *client*, not by `maxDuration`:
- * the iOS app gives up after 120s (`APIClient.generateListings`), so a longer
- * budget here just turns a clear error into a timeout on the phone.
+ * Budget for the whole chain — deliberately under a minute.
+ *
+ * `maxDuration` is 300s and the iOS client waits 120s, but neither is the real
+ * limit: measured 25 Sep 2026, requests that ran past ~60s had the connection
+ * cut before they answered (three drops at 60.41s, 60.37s, 60.37s), while every
+ * request that finished inside a minute arrived. Not an absolute cap — some
+ * longer responses did land earlier in the day — but long enough odds that a
+ * budget over 60s mostly buys the seller a network error instead of an answer.
+ *
+ * So: answer within the minute. Falling through to the next model is what
+ * actually rescues a free-tier refusal, and that's fast — a spent quota rejects
+ * in about a second. Waiting longer per model was never what helped.
  */
-const DEFAULT_BUDGET_MS = 100_000;
+const DEFAULT_BUDGET_MS = 45_000;
+
+/**
+ * Hard ceiling on a single provider call.
+ *
+ * Without this the budget was advisory only: it gates whether to *start* another
+ * attempt and can't interrupt one already in flight, and `generateText` has no
+ * timeout of its own. On 25 Sep 2026 a `gemini-3.5-flash` call simply never came
+ * back and the request sat there until `Vercel Runtime Timeout Error: Task timed
+ * out after 300 seconds` — a 45s budget notwithstanding.
+ *
+ * Sized from what real generations take: successful ones have come back in
+ * 14–25s. Anything past this is a hang, and the next model is the better bet.
+ */
+const PER_CALL_TIMEOUT_MS = 25_000;
+
+/** A call we abandoned ourselves, via the per-call timeout. */
+function isAbort(error: unknown): boolean {
+  const name = (error as { name?: string } | undefined)?.name;
+  return name === 'AbortError' || name === 'TimeoutError';
+}
 
 export interface ProviderRunOptions extends Pick<BackoffOptions, 'delaysMs' | 'sleep' | 'now'> {
   budgetMs?: number;
+  /** Hard ceiling per provider call. Lowered in tests. */
+  perCallTimeoutMs?: number;
   /** Prefix for log lines, e.g. 'generate'. */
   label?: string;
   /** Injectable for tests; defaults to the configured chain. */
@@ -24,9 +55,22 @@ export interface ProviderRunOptions extends Pick<BackoffOptions, 'delaysMs' | 's
  * a spent quota, a retired model id, a bad key. A plain `Error` is ours (a
  * thrown TypeError, a bug in the prompt building), and the next provider would
  * fail the same way for real money, so those stop here.
+ *
+ * A schema miss counts as the provider's: the model answered but the answer
+ * didn't fit `generateResultSchema`, which is sampling luck as much as anything.
+ * Another model is a fair bet, and on the free chain it costs nothing. Before
+ * this was included, one such miss failed the request outright — no retry, no
+ * fallthrough — which is how a two-character-too-long eBay title became a 500.
  */
 function isProviderFailure(error: unknown): boolean {
-  return APICallError.isInstance(error) || RetryError.isInstance(error);
+  return (
+    APICallError.isInstance(error) ||
+    RetryError.isInstance(error) ||
+    NoObjectGeneratedError.isInstance(error) ||
+    // A model that stopped responding is the provider's problem too, and the
+    // next one deserves the remaining time.
+    isAbort(error)
+  );
 }
 
 /**
@@ -45,11 +89,12 @@ function isProviderFailure(error: unknown): boolean {
  * the only error there was.
  */
 export async function runWithProviders<T>(
-  invoke: (model: LanguageModel) => Promise<T>,
+  invoke: (model: LanguageModel, signal: AbortSignal) => Promise<T>,
   options: ProviderRunOptions = {},
 ): Promise<T> {
   const {
     budgetMs = DEFAULT_BUDGET_MS,
+    perCallTimeoutMs = PER_CALL_TIMEOUT_MS,
     label = 'provider',
     candidates = resolveModelChain(),
     delaysMs,
@@ -79,8 +124,11 @@ export async function runWithProviders<T>(
       );
     }
 
+    const callTimeoutMs = Math.min(slice, perCallTimeoutMs);
+
     try {
-      return await withBackoff(() => invoke(candidate.model), {
+      // A fresh signal per attempt, so one slow call can't doom the retry.
+      return await withBackoff(() => invoke(candidate.model, AbortSignal.timeout(callTimeoutMs)), {
         budgetMs: slice,
         delaysMs,
         sleep,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { APICallError } from 'ai';
+import { APICallError, NoObjectGeneratedError } from 'ai';
 import type { LanguageModel } from 'ai';
 import { runWithProviders } from './provider';
 import { resolveModelChain } from './model';
@@ -136,7 +136,7 @@ describe('runWithProviders', () => {
 
     await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
     expect(invoke).toHaveBeenCalledTimes(1);
-    expect(invoke).toHaveBeenCalledWith(FREE.model);
+    expect(invoke).toHaveBeenCalledWith(FREE.model, expect.any(AbortSignal));
   });
 
   it('falls through to the paid key when the free quota is spent', async () => {
@@ -147,8 +147,8 @@ describe('runWithProviders', () => {
     });
 
     await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
-    expect(invoke).toHaveBeenNthCalledWith(1, FREE.model);
-    expect(invoke).toHaveBeenNthCalledWith(2, PAID.model);
+    expect(invoke).toHaveBeenNthCalledWith(1, FREE.model, expect.any(AbortSignal));
+    expect(invoke).toHaveBeenNthCalledWith(2, PAID.model, expect.any(AbortSignal));
   });
 
   it('spends no time on the free tier before falling back on a spent quota', async () => {
@@ -196,6 +196,37 @@ describe('runWithProviders', () => {
     await expect(runWithProviders(invoke, options)).rejects.toBe(OVERLOADED);
   });
 
+  it('tries the next model when one returns output the schema rejects', async () => {
+    // The real case: an eBay title two characters over 80. It used to fail the
+    // request outright — no retry, no fallthrough.
+    const schemaMiss = new NoObjectGeneratedError({
+      message: 'No object generated: response did not match schema.',
+      text: '{"ebayDraft":{"title":"…82 characters…"}}',
+      response: { id: 'r', timestamp: new Date(0), modelId: 'google:test' },
+      usage: {
+        inputTokens: 10,
+        outputTokens: 2400,
+        totalTokens: 2410,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
+        outputTokenDetails: { textTokens: undefined, reasoningTokens: undefined },
+      },
+      finishReason: 'stop',
+    });
+
+    const { options } = controlled();
+    const invoke = vi.fn(async (model: LanguageModel) => {
+      if (model === FREE.model) throw schemaMiss;
+      return 'listing';
+    });
+
+    await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
+    expect(invoke).toHaveBeenNthCalledWith(2, PAID.model, expect.any(AbortSignal));
+  });
+
   it('does not pay to repeat a failure of our own making', async () => {
     // A bug in prompt building isn't the provider's fault; the paid key would
     // fail identically and bill for it.
@@ -204,6 +235,49 @@ describe('runWithProviders', () => {
 
     await expect(runWithProviders(invoke, options)).rejects.toThrow(/not iterable/);
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('abandons a hung call and gives the next model the remaining time', async () => {
+    // The 300s outage: a model that never answers. Before the per-call timeout
+    // the request ran until Vercel killed it at maxDuration.
+    const { options } = controlled({ perCallTimeoutMs: 30 });
+    const invoke = vi.fn(async (model: LanguageModel, signal: AbortSignal) => {
+      if (model === FREE.model) {
+        // Never resolves on its own; only the signal ends it.
+        return new Promise<string>((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(signal.reason));
+        });
+      }
+      return 'listing';
+    });
+
+    await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
+    expect(invoke).toHaveBeenNthCalledWith(2, PAID.model, expect.any(AbortSignal));
+  });
+
+  it('gives each attempt its own signal, so one timeout cannot doom the retry', async () => {
+    const { options } = controlled({ perCallTimeoutMs: 50 });
+    const signals: AbortSignal[] = [];
+    const invoke = vi.fn(async (_model: LanguageModel, signal: AbortSignal) => {
+      signals.push(signal);
+      if (signals.length === 1) throw OVERLOADED;
+      return 'listing';
+    });
+
+    await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
+    expect(signals).toHaveLength(2);
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals[1].aborted).toBe(false);
+  });
+
+  it('passes a signal that is live at the start of the call', async () => {
+    const { options } = controlled();
+    const invoke = vi.fn(async (_model: LanguageModel, signal: AbortSignal) => {
+      expect(signal.aborted).toBe(false);
+      return 'listing';
+    });
+
+    await expect(runWithProviders(invoke, options)).resolves.toBe('listing');
   });
 
   it('reports when no provider is configured at all', async () => {

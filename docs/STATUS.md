@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 49 tests — error translation, condition fallbacks, provider backoff and chain
+    cd backend && npm test          # 62 tests — error translation, condition fallbacks, eBay title fitting, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
 
@@ -29,8 +29,8 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **Item specifics are model-chosen.** Required aspects are filled by an AI call at listing time and aren't shown for review before posting. Surfacing them in the app for confirmation would be a sensible next step.
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
-- **Long requests sometimes lose the connection.** Twice during testing a request that was still retrying server-side returned no response to `curl` (at 60s and at 121s) while the function ran on and logged normally. The function holds the connection open with no bytes sent for up to 100s, which intermediaries may not tolerate. Unconfirmed whether the iOS client sees this; if a "couldn't reach the server" report shows up with a healthy log, this is the first suspect.
-- **Test coverage is partial.** 66 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
+- **Test coverage is partial.** 79 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
@@ -42,7 +42,9 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 **This reverses the original precedence**, which put Anthropic first for quality. The free tier's limits (below) made "best model first" mean "pay for everything", and the useful arrangement is the opposite: free by default, paid for the overflow. Cost tracks the free tier's failures rather than traffic.
 
-Two details worth keeping:
+Three details worth keeping:
+
+- **Every provider call needs a hard timeout.** The budget alone can't stop a call that has already started. Anything calling a model directly must pass `abortSignal` or it can run to `maxDuration`.
 
 - **The budget is shared across the chain**, each provider taking an equal slice of what remains and the last taking the rest. A quota rejection costs ~1s and hands almost the whole budget to the fallback; a slow overload can't eat the budget and leave the fallback no room.
 - **Only failures the *provider* returned fall through.** A `TypeError` from our own prompt building stops there — the paid key would fail the same way and bill for it.
@@ -59,6 +61,9 @@ Two details worth keeping:
 | `AI_RetryError: Failed after 3 attempts … This model is currently experiencing high demand` | Free-tier Gemini has no capacity guarantee. The AI SDK's own 3 retries happen within seconds, which is too short a window to ride out an overload. | `lib/backoff.ts` — model calls pass `maxRetries: 0` and retry through `withBackoff()` instead, waiting 2s → 6s → 15s → 30s (jittered) inside a budget |
 | Every generation 500s after ~90s, log says `high demand` | Not a spike. Free-tier capacity for `gemini-3.6-flash` was unavailable for a sustained run — 0 of 5 requests succeeded, each having exhausted the full retry budget first | Nothing to fix in our code: backoff can't manufacture capacity. This is the argument for the fallback chain below |
 | 429 `You exceeded your current quota` after ~20 generations | The free tier allows **20 generations per model, per project, per day** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, quotaValue `20`). Per *project*, so every install shares the pool — but per *model*, which is the way out | `GOOGLE_MODELS` lists several free models, each carrying its own 20/day. The route also detects exhaustion and answers in ~1s with "Today's listing generations have run out" instead of retrying for 90s |
+| `AI_NoObjectGeneratedError: response did not match schema`, 500 to the app | `generateResultSchema` had `ebayDraft.title: z.string().max(80)`. A title **two characters** over ("…Size EU 26 UK 8.5", 82 chars) failed validation and the entire generation was discarded — a complete, accurate four-platform listing thrown away, with `finishReason: 'stop'` proving the model had finished cleanly | The limit is real but belongs in code, not a validator: `fitEbayTitle()` (`lib/ebayTitle.ts`) trims to 80 at a word boundary, applied in `/api/generate` and in `lib/ebay.ts` where a seller-edited title also passes. The schema no longer rejects on length |
+| A schema miss failed the request outright — no retry, no fallthrough | `isProviderFailure()` only recognised `APICallError` and `RetryError`, so `NoObjectGeneratedError` skipped the chain entirely | Included now. A schema miss is sampling luck as much as anything, another model is a fair bet, and on the free chain it costs nothing |
+| `Vercel Runtime Timeout Error: Task timed out after 300 seconds`, despite a 45s budget | **The budget was advisory.** `withBackoff` gates whether to *start* another attempt and cannot interrupt one in flight, and `generateText` has no timeout of its own — so a `gemini-3.5-flash` call that never came back held the request until `maxDuration` killed it | `PER_CALL_TIMEOUT_MS` (25s) with a fresh `AbortSignal.timeout()` per attempt, passed into every `generateText` as `abortSignal`. An abort counts as a provider failure, so the next model gets the remaining time |
 | A guessed Gemini id 404s: `not found for API version v1beta, or is not supported for generateContent` | Model ids can't be guessed from the version number. Probed 25 Sep 2026: `gemini-3.6-flash-lite` and `gemini-3.6-pro` **don't exist**; `gemini-3.6-flash`, `gemini-3.5-flash` and `gemini-3.5-flash-lite` all work | A bad id costs nothing — it 404s before generating, and the chain falls through — so probing is the cheap way to find valid ids. `gemini-3.5-pro` and `gemini-3.6-flash-latest` are untested |
 | A spent daily quota was being retried for the full budget | Google returns the daily cap as a **429 with `isRetryable: true` and a `retryDelay: 32s`**, indistinguishable from a per-minute rate limit by status or message. The quota id that tells them apart is in the *response body*, not the message. | `isExhaustedForTheDay()` looks for `PerDay` in the response body and treats it as terminal; per-minute limits stay retryable |
 

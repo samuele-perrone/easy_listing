@@ -2,6 +2,7 @@ import { generateText, Output } from 'ai';
 import { generateResultSchema } from '@/lib/schema';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { runWithProviders } from '@/lib/provider';
+import { fitEbayTitle } from '@/lib/ebayTitle';
 
 export const maxDuration = 300;
 
@@ -31,8 +32,10 @@ export async function POST(request: Request) {
 
     const note = notes?.join(' ').trim();
     const { output } = await runWithProviders(
-      (model) =>
+      (model, abortSignal) =>
         generateText({
+          // Without this a hung provider call runs until Vercel's 300s limit.
+          abortSignal,
           // Own the retry timing rather than letting the SDK burn all three
           // attempts in a few seconds — see lib/backoff.ts.
           maxRetries: 0,
@@ -61,7 +64,10 @@ export async function POST(request: Request) {
       { label: 'generate' },
     );
 
-    return Response.json(output);
+    return Response.json({
+      ...output,
+      ebayDraft: { ...output.ebayDraft, title: fitEbayTitle(output.ebayDraft.title) },
+    });
   } catch (error) {
     console.error('generate failed', error);
 
