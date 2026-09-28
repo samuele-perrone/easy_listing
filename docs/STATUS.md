@@ -37,6 +37,10 @@ Why: the old shape made the phone hold a connection open for as long as the prov
 
 Job state lives in Vercel Blob under `jobs/<uuid>.json`. It's written `access: 'public'` because the attached store is public — it has to be, since eBay fetches listing photos from it by URL — and a second private store would mean a second token next to `BLOB_READ_WRITE_TOKEN`, with a real chance of clobbering the one the photo upload needs. The trade is acceptable *for this content specifically*: a job holds a draft of a listing the seller is about to publish publicly, under a random UUID, with no credentials and nothing about the seller. Put anything genuinely private in its own store instead.
 
+**Job state is read over the CDN, never through the Blob SDK.** This cost a real outage on 28 Sep: `readJob` used `get(..., { useCache: false })` so a finished job could never be served as stale "pending", but that made every poll a Blob *API* call, and the API rate-limits. With the app polling every three seconds the reads began returning `403 Forbidden`; the app treats a failed poll as "not finished yet" and kept waiting, so it sat on a spinner **while a completed listing was already sitting in the store**. Freshness now comes from `cacheControlMaxAge: 0` on the write instead, and reads are a plain `fetch` of the public URL at `BLOB_PUBLIC_HOST`.
+
+The CDN rate-limits too, just far later — hammered back to back, about a third of reads 403'd, while the app's own three-second cadence never did. `readJob` retries three times over ~750ms, which took a 30-poll burst from 19/30 succeeding to 30/30. If the Blob store is ever replaced, `BLOB_PUBLIC_HOST` must be updated or every poll 404s.
+
 Known housekeeping: job blobs are never deleted. They're small JSON, but they accumulate.
 
 Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
