@@ -159,7 +159,9 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
 
-**Build 2 uploaded 25 Sep 2026** (delivery UUID `e5cae045-19c9-454f-b850-992cf73b0b03`), archive → export → upload all clean via `ios/release.sh`. The binary is **identical to build 1** — no iOS file changed between them; it exists to refresh the build and its 90-day window. Every change since build 1 has been backend-side, which reaches existing installs without a new build at all. Worth pausing on before the next upload: if the work was backend-only, a TestFlight release ships nothing.
+**Build 3 uploaded 28 Sep 2026** (delivery UUID `cf365bc6-666a-4f8c-9387-af1f6408508d`) — the coral icon and the "Where to sell" ranking card. **Build 2** (25 Sep, `e5cae045-19c9-454f-b850-992cf73b0b03`) was byte-identical to build 1: no iOS file changed between them, so it shipped nothing. Check `git diff <last-build>..HEAD -- ios/` before uploading; backend changes reach existing installs on deploy and need no build at all.
+
+Note for testing build 3: the recommendation card only appears on items generated **after** the `marketFit` backend change, because the ranking is stored per item at generation time. Existing history shows the old behaviour.
 
 Two steps that are easy to miss, both of which cost time here: a tester has to be **added to an internal group** (creating the group isn't enough — the group's Invites column reads `–` until someone is in it), and a newly-added tester takes **a few minutes to appear** in the TestFlight app. Use an **Internal** group; external ones need Beta App Review first.
 
