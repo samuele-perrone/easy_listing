@@ -49,6 +49,17 @@ struct ListingField: Codable, Hashable, Identifiable {
     var id: String { label }
 }
 
+/// Where an item is in the generation pipeline.
+///
+/// An item is saved with its photos *before* generation starts, so a failure
+/// costs a retry rather than the photos. Anything that isn't `.ready` can be
+/// retried from the history list.
+enum GenerationState: String, Codable {
+    case pending    // job running on the server
+    case ready      // listings written
+    case failed     // job finished badly; retryable
+}
+
 /// What one platform is expected to fetch for this item, and why.
 struct MarketFitEntry: Codable, Hashable, Identifiable {
     var platform: Platform
@@ -174,16 +185,77 @@ final class Item {
     @Attribute(.externalStorage) var photosData: [Data]
     /// Optional so items saved before the feature existed still load.
     var marketFitData: Data?
+    /// Photos are kept with the item from the moment it's created, so a failed
+    /// generation never loses them.
+    /// Optional, not defaulted: adding a non-optional property to a model that
+    /// already has rows on someone's phone risks a migration failure, and that
+    /// shows up as a crash on launch. Optional is the form SwiftData always
+    /// migrates cleanly; the defaults live in the accessors below.
+    var notes: String?
+    var generationStateRaw: String?
+    /// The server-side job to poll. Kept so a relaunch can pick it back up.
+    var jobId: String?
+    var generationError: String?
+    var generationFix: String?
     @Relationship(deleteRule: .cascade, inverse: \PlatformListing.item)
     var listings: [PlatformListing]
 
-    init(title: String, summary: String, photosData: [Data]) {
+    init(
+        title: String,
+        summary: String,
+        photosData: [Data],
+        notes: String = "",
+        state: GenerationState = .ready
+    ) {
         self.title = title
         self.summary = summary
         self.createdAt = .now
         self.photosData = photosData
+        self.notes = notes
         self.marketFitData = nil
+        self.generationStateRaw = state.rawValue
         self.listings = []
+    }
+
+    /// Items saved before this existed have no state, and they're finished
+    /// listings — so absent reads as `.ready`.
+    var generationState: GenerationState {
+        get { GenerationState(rawValue: generationStateRaw ?? "") ?? .ready }
+        set { generationStateRaw = newValue.rawValue }
+    }
+
+    var sellerNotes: String { notes ?? "" }
+
+    /// Fills in everything the generation produced, replacing any previous
+    /// attempt's listings so a retry doesn't leave duplicates behind.
+    func apply(_ response: APIClient.GenerateResponse) {
+        title = response.title
+        summary = response.summary
+        marketFit = response.marketFit
+        listings.removeAll()
+
+        for generated in response.listings {
+            guard let platform = Platform(rawValue: generated.platform) else { continue }
+            let listing = PlatformListing(
+                platform: platform,
+                fields: generated.fields,
+                ebayDraft: platform == .ebay ? response.ebayDraft : nil
+            )
+            listing.item = self
+            listings.append(listing)
+        }
+
+        generationState = .ready
+        generationError = nil
+        generationFix = nil
+        jobId = nil
+    }
+
+    func markFailed(error: String, fix: String?) {
+        generationState = .failed
+        generationError = error
+        generationFix = fix
+        jobId = nil
     }
 
     var marketFit: MarketFit? {

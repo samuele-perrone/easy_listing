@@ -41,6 +41,11 @@ struct HistoryView: View {
             }
             .sheet(isPresented: $showingNewItem) { NewItemView() }
             .sheet(isPresented: $showingSettings) { SettingsView() }
+            .task {
+                // A job started before the app was closed is still running on
+                // the server; collect whatever finished while we were away.
+                await GenerationCoordinator.shared.resumePendingWork(context: modelContext)
+            }
         }
     }
 }
@@ -67,9 +72,24 @@ private struct ItemRow: View {
                 Text(item.createdAt, format: .dateTime.day().month().year())
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 4) {
-                    ForEach(item.listings.sorted { $0.platformRaw < $1.platformRaw }, id: \.platformRaw) { listing in
-                        StatusChip(listing: listing)
+
+                switch item.generationState {
+                case .pending:
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.mini)
+                        Text("Writing listings…").font(.caption)
+                    }
+                    .foregroundStyle(.secondary)
+                case .failed:
+                    Label(item.generationError ?? "Couldn't write the listings.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .lineLimit(2)
+                case .ready:
+                    HStack(spacing: 4) {
+                        ForEach(item.listings.sorted { $0.platformRaw < $1.platformRaw }, id: \.platformRaw) { listing in
+                            StatusChip(listing: listing)
+                        }
                     }
                 }
             }

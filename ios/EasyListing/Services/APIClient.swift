@@ -76,6 +76,49 @@ struct APIClient {
         }
     }
 
+    /// A generation running on the server.
+    struct JobStatus: Codable {
+        var status: String
+        var result: GenerateResponse?
+        var error: String?
+        var fix: String?
+
+        var isPending: Bool { status == "pending" }
+    }
+
+    /// Starts a generation and returns immediately with a job id to poll.
+    ///
+    /// The synchronous call below makes the phone hold a connection open for as
+    /// long as the provider takes, and connections past about a minute were
+    /// being cut — "The network connection was lost", with the photos gone too.
+    /// This starts the work and lets the phone check back.
+    static func startGeneration(photos: [UIImage], notes: String) async throws -> String {
+        let images = encodedImages(from: photos, maxDimension: 1100, quality: 0.6)
+        guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
+
+        var request = URLRequest(url: baseURL.appending(path: "/api/generate/start"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60
+        request.httpBody = try JSONEncoder().encode(["images": images, "notes": [notes]])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response, accepting: [200, 202])
+
+        struct Started: Codable { var jobId: String }
+        return try JSONDecoder().decode(Started.self, from: data).jobId
+    }
+
+    /// Asks how a generation is getting on.
+    static func generationStatus(jobId: String) async throws -> JobStatus {
+        var request = URLRequest(url: baseURL.appending(path: "/api/generate/status/\(jobId)"))
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response)
+        return try JSONDecoder().decode(JobStatus.self, from: data)
+    }
+
     /// Sends the item photos (+ optional notes) and gets back per-platform listing fields.
     static func generateListings(photos: [UIImage], notes: String) async throws -> GenerateResponse {
         let images = encodedImages(from: photos, maxDimension: 1100, quality: 0.6)
@@ -144,8 +187,8 @@ struct APIClient {
         return (resp.accessToken, resp.expiresIn)
     }
 
-    private static func checkOK(data: Data, response: URLResponse) throws {
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+    private static func checkOK(data: Data, response: URLResponse, accepting: Set<Int> = [200]) throws {
+        guard let http = response as? HTTPURLResponse, accepting.contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             struct ErrBody: Codable {
                 var error: String?

@@ -101,25 +101,29 @@ struct NewItemView: View {
     private func generate() async {
         isGenerating = true
         defer { isGenerating = false }
-        do {
-            let response = try await APIClient.generateListings(photos: photos, notes: notes)
-            let photosData = photos.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
-            let item = Item(title: response.title, summary: response.summary, photosData: photosData)
-            item.marketFit = response.marketFit
-            modelContext.insert(item)
-            for generated in response.listings {
-                guard let platform = Platform(rawValue: generated.platform) else { continue }
-                let listing = PlatformListing(
-                    platform: platform,
-                    fields: generated.fields,
-                    ebayDraft: platform == .ebay ? response.ebayDraft : nil
-                )
-                listing.item = item
-                item.listings.append(listing)
-            }
-            dismiss()
-        } catch {
-            generateError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription)
-        }
+
+        // Save the item with its photos *first*. Generation can fail — the free
+        // tier runs out, the provider gets busy — and losing the photos to that
+        // means re-shooting the item. Now a failure is a Retry in the list.
+        let photosData = photos.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
+        let item = Item(
+            title: "Writing listings…",
+            summary: notes.isEmpty ? "Photos saved. Listings are being written." : notes,
+            photosData: photosData,
+            notes: notes,
+            state: .pending
+        )
+        modelContext.insert(item)
+        try? modelContext.save()
+
+        await GenerationCoordinator.shared.requestNotificationPermissionIfNeeded()
+
+        // Hand off and close: the work carries on whether or not this screen,
+        // or the app, is still open.
+        let captured = photos
+        let context = modelContext
+        Task { await GenerationCoordinator.shared.start(item: item, photos: captured, context: context) }
+
+        dismiss()
     }
 }

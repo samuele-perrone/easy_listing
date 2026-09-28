@@ -3,7 +3,9 @@ import SwiftData
 
 struct ItemDetailView: View {
     let item: Item
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedPlatform: Platform?
+    @State private var isRetrying = false
 
     private var sortedListings: [PlatformListing] {
         item.listings.sorted { $0.platformRaw < $1.platformRaw }
@@ -42,6 +44,46 @@ struct ItemDetailView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
+                switch item.generationState {
+                case .pending:
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Writing your listings… you can close the app, it carries on.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal)
+
+                case .failed:
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(item.generationError ?? "Couldn't write the listings.",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.orange)
+                        if let fix = item.generationFix {
+                            Text(fix).font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button {
+                            retry()
+                        } label: {
+                            if isRetrying {
+                                HStack { ProgressView(); Text("Starting…") }
+                            } else {
+                                Label("Retry", systemImage: "arrow.clockwise")
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isRetrying)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+                    .padding(.horizontal)
+
+                case .ready:
+                    EmptyView()
+                }
+
                 if let fit = item.marketFit, !fit.platforms.isEmpty {
                     MarketFitView(fit: fit) { selectedPlatform = $0 }
                         .padding(.horizontal)
@@ -69,5 +111,17 @@ struct ItemDetailView: View {
         }
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The photos were saved with the item, so a retry needs nothing from the
+    /// seller — which is the whole point of saving them before generating.
+    private func retry() {
+        isRetrying = true
+        let photos = item.photosData.compactMap(UIImage.init(data:))
+        let context = modelContext
+        Task {
+            await GenerationCoordinator.shared.start(item: item, photos: photos, context: context)
+            isRetrying = false
+        }
     }
 }

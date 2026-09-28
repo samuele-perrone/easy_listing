@@ -23,6 +23,24 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed.
 - **Readable errors.** eBay's numeric failures are translated into what went wrong and what to do (`lib/ebayErrors.ts`). The raw payload is kept out of the alert and attached to an "Email support" action instead.
 
+## Generation runs as a background job
+
+Since 28 Sep 2026 the app doesn't wait on an HTTP request for its listings.
+
+- `POST /api/generate/start` → `{ jobId }` immediately (202), work continues under `waitUntil`.
+- `GET /api/generate/status/<jobId>` → `pending` | `ready` (with `result`) | `failed` (with `error`/`fix`).
+- `POST /api/generate` is **unchanged and still live**, because builds already on phones call it. Both share `lib/generate.ts`.
+
+Why: the old shape made the phone hold a connection open for as long as the provider took, and connections past ~60s were being cut. The seller saw *"The network connection was lost"* — and lost their photos with it, since the item was only created on success.
+
+**The item is now saved with its photos before generation starts.** A failure leaves an item in the list marked failed, with a Retry that needs nothing from the seller. Closing the app is safe too: the job id is on the item, and `GenerationCoordinator.resumePendingWork()` picks it back up on next launch. A **local notification** fires when a job finishes while the app isn't in the foreground — local, so there's no APNs key, no device tokens on the server, and no change to what the privacy policy claims.
+
+Job state lives in Vercel Blob under `jobs/<uuid>.json`. It's written `access: 'public'` because the attached store is public — it has to be, since eBay fetches listing photos from it by URL — and a second private store would mean a second token next to `BLOB_READ_WRITE_TOKEN`, with a real chance of clobbering the one the photo upload needs. The trade is acceptable *for this content specifically*: a job holds a draft of a listing the seller is about to publish publicly, under a random UUID, with no credentials and nothing about the seller. Put anything genuinely private in its own store instead.
+
+Known housekeeping: job blobs are never deleted. They're small JSON, but they accumulate.
+
+Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
+
 ## Built, not yet verified live
 
 - **Marketplace recommendation (`marketFit`).** Ranks all four platforms by what the item should fetch, with a GBP range and a one-line reason each, plus a `bestPlatform` and a summary. Backend: `marketFitSchema` in `lib/schema.ts`, tidied by `normaliseMarketFit()` (`lib/marketFit.ts`, 10 tests). iOS: `MarketFitView` card above the platform picker, a ★ on the recommended tab, and the detail screen now opens on the recommended platform instead of always eBay. Built and compiling (simulator build green), but **no live generation has returned a `marketFit` payload yet** — every attempt on 28 Sep hit the free tier being out of quota on two models and overloaded on the third. The shape is covered by unit tests; the model's actual output is not yet eyeballed.
