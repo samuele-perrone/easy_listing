@@ -177,7 +177,7 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
 
-**Build 3 uploaded 28 Sep 2026** (delivery UUID `cf365bc6-666a-4f8c-9387-af1f6408508d`) — the coral icon and the "Where to sell" ranking card. **Build 2** (25 Sep, `e5cae045-19c9-454f-b850-992cf73b0b03`) was byte-identical to build 1: no iOS file changed between them, so it shipped nothing. Check `git diff <last-build>..HEAD -- ios/` before uploading; backend changes reach existing installs on deploy and need no build at all.
+**Build 4 uploaded 28 Sep 2026** (delivery UUID `fd50b368-4a7d-4b74-8c43-a125459abd9d`) — background generation, save-before-generate with Retry, and local notifications. **Build 3** (`cf365bc6-666a-4f8c-9387-af1f6408508d`) — the coral icon and the "Where to sell" ranking card. **Build 2** (25 Sep, `e5cae045-19c9-454f-b850-992cf73b0b03`) was byte-identical to build 1: no iOS file changed between them, so it shipped nothing. Check `git diff <last-build>..HEAD -- ios/` before uploading; backend changes reach existing installs on deploy and need no build at all.
 
 Note for testing build 3: the recommendation card only appears on items generated **after** the `marketFit` backend change, because the ranking is stored per item at generation time. Existing history shows the old behaviour.
 
