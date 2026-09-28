@@ -226,6 +226,33 @@ final class Item {
 
     var sellerNotes: String { notes ?? "" }
 
+    /// A name to carry until the generation supplies a real one.
+    ///
+    /// Not "Writing listings…": that reads as progress, and a job that fails
+    /// leaves it stuck there for good — an item permanently titled as though
+    /// it's still working. Progress belongs in the status row, which already
+    /// shows a spinner; the title has to be something that still makes sense
+    /// when the generation never arrives.
+    static func placeholderTitle(notes: String) -> String {
+        let firstLine = notes
+            .split(separator: "\n", maxSplits: 1)
+            .first
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespaces) ?? ""
+
+        guard !firstLine.isEmpty else { return "Untitled item" }
+        guard firstLine.count > 40 else { return firstLine }
+
+        // Cut at a word so the title doesn't end mid-word.
+        let clipped = String(firstLine.prefix(40))
+        if let lastSpace = clipped.lastIndex(of: " ") {
+            let trimmed = String(clipped[..<lastSpace])
+                .trimmingCharacters(in: CharacterSet(charactersIn: " ,;:-–—"))
+            if !trimmed.isEmpty { return trimmed + "…" }
+        }
+        return clipped + "…"
+    }
+
     /// Fills in everything the generation produced, replacing any previous
     /// attempt's listings so a retry doesn't leave duplicates behind.
     func apply(_ response: APIClient.GenerateResponse) {

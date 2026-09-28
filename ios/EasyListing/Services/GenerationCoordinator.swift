@@ -49,8 +49,19 @@ final class GenerationCoordinator {
 
     /// Picks up any item left mid-generation, e.g. after the app was closed.
     func resumePendingWork(context: ModelContext) async {
-        let pending = (try? context.fetch(FetchDescriptor<Item>())) ?? []
-        for item in pending where item.generationState == .pending && item.jobId != nil {
+        let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
+
+        // Build 4 used the title as a progress message, so an item whose job
+        // failed kept the name "Writing listings…" permanently. Rename those
+        // once; nothing else writes that string any more.
+        var renamed = false
+        for item in items where item.title == "Writing listings…" && item.generationState != .pending {
+            item.title = Item.placeholderTitle(notes: item.sellerNotes)
+            renamed = true
+        }
+        if renamed { try? context.save() }
+
+        for item in items where item.generationState == .pending && item.jobId != nil {
             await watch(item: item, context: context)
         }
     }

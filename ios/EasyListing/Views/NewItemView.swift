@@ -107,8 +107,8 @@ struct NewItemView: View {
         // means re-shooting the item. Now a failure is a Retry in the list.
         let photosData = photos.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
         let item = Item(
-            title: "Writing listings…",
-            summary: notes.isEmpty ? "Photos saved. Listings are being written." : notes,
+            title: Item.placeholderTitle(notes: notes),
+            summary: "",
             photosData: photosData,
             notes: notes,
             state: .pending

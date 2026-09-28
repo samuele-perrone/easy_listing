@@ -39,10 +39,12 @@ struct ItemDetailView: View {
                     .padding(.horizontal)
                 }
 
-                Text(item.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
+                if !item.summary.isEmpty {
+                    Text(item.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                }
 
                 switch item.generationState {
                 case .pending:
