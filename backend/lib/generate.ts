@@ -44,7 +44,17 @@ one where condition or a hidden detail would swing the price a lot, say so in th
  * Newer builds start a job instead and poll, which is what survives a slow
  * provider — the phone isn't holding a connection open while we retry.
  */
-export async function generateListings(images: string[], notes?: string[]): Promise<GenerateResult> {
+export interface GenerateOptions {
+  /** Whole-chain budget. The caller knows what's waiting at the other end. */
+  budgetMs?: number;
+  perCallTimeoutMs?: number;
+}
+
+export async function generateListings(
+  images: string[],
+  notes?: string[],
+  options: GenerateOptions = {},
+): Promise<GenerateResult> {
   const note = notes?.join(' ').trim();
 
   const { output } = await runWithProviders(
@@ -77,7 +87,7 @@ export async function generateListings(images: string[], notes?: string[]): Prom
           },
         ],
       }),
-    { label: 'generate' },
+    { label: 'generate', ...options },
   );
 
   return {

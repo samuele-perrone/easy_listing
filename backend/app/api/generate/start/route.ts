@@ -28,7 +28,15 @@ export async function POST(request: Request) {
   waitUntil(
     (async () => {
       try {
-        const result = await generateListings(images, notes);
+        // Nothing is holding a connection open here — the app polls — so the
+        // only real ceiling is maxDuration. The short budget belongs to the
+        // synchronous route, and inheriting it meant the paid fallback was
+        // reached and then cut off mid-generation: Sonnet with four images and
+        // a full four-platform response doesn't finish inside 35s.
+        const result = await generateListings(images, notes, {
+          budgetMs: 240_000,
+          perCallTimeoutMs: 90_000,
+        });
         await writeJob(jobId, {
           status: 'ready',
           startedAt: new Date().toISOString(),
