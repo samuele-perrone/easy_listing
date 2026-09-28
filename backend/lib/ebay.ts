@@ -386,7 +386,26 @@ export async function createListing(
   const condition = await supportedCondition(categoryTreeId, categoryId, draft.condition);
 
   const aspects = await requiredAspects(categoryTreeId, categoryId);
-  const aspectValues = await chooseAspectValues(draft.title, draft.description, aspects);
+
+  // Filling item specifics needs a model call, so posting to eBay inherits the
+  // provider's bad days — and on the free tier those are common. An unguarded
+  // failure here killed the whole post with a provider error the seller can do
+  // nothing with ("This model is currently experiencing high demand"), even
+  // though every eBay step around it was fine.
+  //
+  // So degrade instead: go on without the specifics. If the category genuinely
+  // requires them, eBay answers 25002, which `ebayErrors.ts` already turns into
+  // "eBay needs more detail about this item before it can be listed" and points
+  // at the fields to edit. A real, actionable error beats an opaque one.
+  let aspectValues: Record<string, string[]> = {};
+  try {
+    aspectValues = await chooseAspectValues(draft.title, draft.description, aspects);
+  } catch (error) {
+    console.warn(
+      'eBay: could not fill item specifics, continuing without them —',
+      error instanceof Error ? error.message : error,
+    );
+  }
   console.log(`eBay category ${categoryId} requires aspects`, JSON.stringify(aspectValues));
 
   const inventoryItem = {
