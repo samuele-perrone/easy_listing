@@ -41,6 +41,17 @@ Known housekeeping: job blobs are never deleted. They're small JSON, but they ac
 
 Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
 
+## Camera
+
+Photos are taken with a **custom overlay** on `UIImagePickerController` (`showsCameraControls = false`), not the system controls. The stock camera confirms every shot with "Use Photo" / "Retake" and returns a single image, so photographing one item from four angles meant entering and leaving the camera four times. The overlay is a shutter that keeps shooting, a running count, and a Done button.
+
+Two details the next reader shouldn't undo:
+
+- **The delegate deliberately does not dismiss** after a camera capture. Staying put is the whole feature. It still dismisses for the library fallback, which returns one image.
+- **`point(inside:)` is overridden** so the overlay only catches taps on its own controls; everything else must fall through to the live preview, or focus and zoom stop working.
+
+Camera shots are copied to the camera roll with `UIImageWriteToSavedPhotosAlbum`, which needs `NSPhotoLibraryAddUsageDescription` — without that key the app crashes on the first save rather than showing a prompt. Library picks aren't re-saved; they're already there. The point is the copy-paste flow: Vinted, Gumtree and Facebook have no API, so the photos must be uploadable from the phone's own library later.
+
 ## Built, not yet verified live
 
 - **Marketplace recommendation (`marketFit`).** Ranks all four platforms by what the item should fetch, with a GBP range and a one-line reason each, plus a `bestPlatform` and a summary. Backend: `marketFitSchema` in `lib/schema.ts`, tidied by `normaliseMarketFit()` (`lib/marketFit.ts`, 10 tests). iOS: `MarketFitView` card above the platform picker, a ★ on the recommended tab, and the detail screen now opens on the recommended platform instead of always eBay. Built and compiling (simulator build green), but **no live generation has returned a `marketFit` payload yet** — every attempt on 28 Sep hit the free tier being out of quota on two models and overloaded on the third. The shape is covered by unit tests; the model's actual output is not yet eyeballed.

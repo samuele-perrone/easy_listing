@@ -118,6 +118,7 @@ struct ItemDetailView: View {
     /// The photos were saved with the item, so a retry needs nothing from the
     /// seller — which is the whole point of saving them before generating.
     private func retry() {
+        guard !isRetrying else { return }
         isRetrying = true
         let photos = item.photosData.compactMap(UIImage.init(data:))
         let context = modelContext

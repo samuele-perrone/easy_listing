@@ -40,6 +40,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of the item you want to sell.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save the photos you take to your camera roll, so you can upload them to the other marketplaces.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Pick photos of the item you want to sell.</string>
 	<key>UILaunchScreen</key>

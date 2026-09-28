@@ -99,6 +99,10 @@ struct NewItemView: View {
     }
 
     private func generate() async {
+        // `.disabled(isGenerating)` only takes effect on the next render, so two
+        // taps in the same frame both get here and each saves its own item.
+        // Checking and setting on the main actor with no await between closes it.
+        guard !isGenerating else { return }
         isGenerating = true
         defer { isGenerating = false }
 

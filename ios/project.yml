@@ -16,6 +16,9 @@ targets:
         UILaunchScreen: {}
         NSCameraUsageDescription: Take photos of the item you want to sell.
         NSPhotoLibraryUsageDescription: Pick photos of the item you want to sell.
+        # Camera shots are copied to your library so you can upload them to
+        # Vinted, Gumtree and Facebook, which have no API and need a manual upload.
+        NSPhotoLibraryAddUsageDescription: Save the photos you take to your camera roll, so you can upload them to the other marketplaces.
         CFBundleURLTypes:
           - CFBundleURLSchemes: [easylisting]
         LSApplicationQueriesSchemes: [vinted, fb, gumtree, ebay]
@@ -26,7 +29,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.samperrone.easylisting
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "5"
+        CURRENT_PROJECT_VERSION: "6"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1"
