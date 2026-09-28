@@ -49,6 +49,45 @@ struct ListingField: Codable, Hashable, Identifiable {
     var id: String { label }
 }
 
+/// What one platform is expected to fetch for this item, and why.
+struct MarketFitEntry: Codable, Hashable, Identifiable {
+    var platform: Platform
+    var rank: Int
+    var estimatedLow: Double
+    var estimatedHigh: Double
+    var reason: String
+
+    var id: String { platform.rawValue }
+
+    /// "£18–25" — whole pounds, because the range is an estimate and pennies
+    /// would imply a precision it doesn't have.
+    var priceRange: String {
+        let low = Self.pounds(estimatedLow)
+        let high = Self.pounds(estimatedHigh)
+        return low == high ? low : "\(low)–\(high)"
+    }
+
+    private static func pounds(_ value: Double) -> String {
+        "£" + String(format: "%.0f", value.rounded())
+    }
+}
+
+/// Which platform is worth listing on, ranked. Estimated by the model from the
+/// photos — not sold-price data, which the app doesn't have.
+struct MarketFit: Codable, Hashable {
+    var bestPlatform: Platform
+    var summary: String
+    var platforms: [MarketFitEntry]
+
+    var best: MarketFitEntry? {
+        platforms.first { $0.platform == bestPlatform } ?? platforms.first
+    }
+
+    var others: [MarketFitEntry] {
+        platforms.filter { $0.platform != bestPlatform }
+    }
+}
+
 /// Machine-readable payload the backend needs to create a real eBay listing.
 struct EbayDraft: Codable, Hashable {
     var title: String
@@ -133,6 +172,8 @@ final class Item {
     var summary: String
     var createdAt: Date
     @Attribute(.externalStorage) var photosData: [Data]
+    /// Optional so items saved before the feature existed still load.
+    var marketFitData: Data?
     @Relationship(deleteRule: .cascade, inverse: \PlatformListing.item)
     var listings: [PlatformListing]
 
@@ -141,6 +182,12 @@ final class Item {
         self.summary = summary
         self.createdAt = .now
         self.photosData = photosData
+        self.marketFitData = nil
         self.listings = []
+    }
+
+    var marketFit: MarketFit? {
+        get { marketFitData.flatMap { try? JSONDecoder().decode(MarketFit.self, from: $0) } }
+        set { marketFitData = newValue.flatMap { try? JSONEncoder().encode($0) } }
     }
 }

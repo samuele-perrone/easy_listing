@@ -16,7 +16,7 @@ import { isExhaustedForTheDay, withBackoff, type BackoffOptions } from '@/lib/ba
  * actually rescues a free-tier refusal, and that's fast — a spent quota rejects
  * in about a second. Waiting longer per model was never what helped.
  */
-const DEFAULT_BUDGET_MS = 45_000;
+const DEFAULT_BUDGET_MS = 50_000;
 
 /**
  * Hard ceiling on a single provider call.
@@ -27,10 +27,13 @@ const DEFAULT_BUDGET_MS = 45_000;
  * back and the request sat there until `Vercel Runtime Timeout Error: Task timed
  * out after 300 seconds` — a 45s budget notwithstanding.
  *
- * Sized from what real generations take: successful ones have come back in
- * 14–25s. Anything past this is a hang, and the next model is the better bet.
+ * Sized from what real generations take — and that moves when the schema does.
+ * At 25s this was fine for the original response; adding `marketFit` (a ranking
+ * and a price range per platform) pushed generation past it and the timeout
+ * started firing on healthy calls. Re-measure this after any schema change that
+ * makes the model write appreciably more.
  */
-const PER_CALL_TIMEOUT_MS = 25_000;
+const PER_CALL_TIMEOUT_MS = 35_000;
 
 /** A call we abandoned ourselves, via the per-call timeout. */
 function isAbort(error: unknown): boolean {

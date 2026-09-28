@@ -5,6 +5,35 @@ export const listingFieldSchema = z.object({
   value: z.string().describe('Ready-to-paste content for that field'),
 });
 
+export const PLATFORMS = ['ebay', 'vinted', 'gumtree', 'facebook'] as const;
+
+/**
+ * Where this particular item is worth listing, and roughly what it fetches
+ * there. Ranked rather than scored: the seller's question is "which one", and a
+ * rank answers it without pretending to a precision nobody has.
+ *
+ * Deliberately loose about `rank` and completeness — the model drops or
+ * duplicates a rank often enough that validating it would throw away a good
+ * listing over bookkeeping. `normaliseMarketFit()` tidies it instead.
+ */
+export const marketFitSchema = z.object({
+  bestPlatform: z.enum(PLATFORMS).describe('Where this item should fetch the most'),
+  summary: z
+    .string()
+    .describe('One sentence on why that platform pays best for THIS item, in plain language'),
+  platforms: z.array(
+    z.object({
+      platform: z.enum(PLATFORMS),
+      rank: z.number().describe('1 = pays best. Rank every platform.'),
+      estimatedLow: z.number().describe('Realistic lower end a seller actually gets, GBP'),
+      estimatedHigh: z.number().describe('Realistic upper end, GBP'),
+      reason: z
+        .string()
+        .describe('Short reason — who shops there, postage vs collection, reach, fees'),
+    }),
+  ),
+});
+
 export const generateResultSchema = z.object({
   title: z.string().describe('Short internal name for the item, e.g. "Levi\'s 501 jeans, dark blue, W32"'),
   summary: z.string().describe('One or two sentences describing the item and its condition'),
@@ -14,6 +43,7 @@ export const generateResultSchema = z.object({
       fields: z.array(listingFieldSchema),
     }),
   ),
+  marketFit: marketFitSchema,
   ebayDraft: z.object({
     // Deliberately NOT .max(80): as a validator it discarded an entire good
     // generation over a two-character overshoot. fitEbayTitle() applies eBay's

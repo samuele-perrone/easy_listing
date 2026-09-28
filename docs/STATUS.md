@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 62 tests — error translation, condition fallbacks, eBay title fitting, provider backoff and chain
+    cd backend && npm test          # 71 tests — error translation, condition fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
 
@@ -23,6 +23,12 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed.
 - **Readable errors.** eBay's numeric failures are translated into what went wrong and what to do (`lib/ebayErrors.ts`). The raw payload is kept out of the alert and attached to an "Email support" action instead.
 
+## Built, not yet verified live
+
+- **Marketplace recommendation (`marketFit`).** Ranks all four platforms by what the item should fetch, with a GBP range and a one-line reason each, plus a `bestPlatform` and a summary. Backend: `marketFitSchema` in `lib/schema.ts`, tidied by `normaliseMarketFit()` (`lib/marketFit.ts`, 10 tests). iOS: `MarketFitView` card above the platform picker, a ★ on the recommended tab, and the detail screen now opens on the recommended platform instead of always eBay. Built and compiling (simulator build green), but **no live generation has returned a `marketFit` payload yet** — every attempt on 28 Sep hit the free tier being out of quota on two models and overloaded on the third. The shape is covered by unit tests; the model's actual output is not yet eyeballed.
+
+  The estimates are the model's read of the photos, not sold-price data, and the UI says so. Making them real means the eBay sold-listings work in "Ideas not yet built" below.
+
 ## Not finished
 
 - **`Post to eBay` publishes immediately.** There's no way to correct a live listing from the app — you'd end it in Seller Hub. Drafts are the safe path.
@@ -30,7 +36,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 79 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 88 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
@@ -64,6 +70,7 @@ Three details worth keeping:
 | `AI_NoObjectGeneratedError: response did not match schema`, 500 to the app | `generateResultSchema` had `ebayDraft.title: z.string().max(80)`. A title **two characters** over ("…Size EU 26 UK 8.5", 82 chars) failed validation and the entire generation was discarded — a complete, accurate four-platform listing thrown away, with `finishReason: 'stop'` proving the model had finished cleanly | The limit is real but belongs in code, not a validator: `fitEbayTitle()` (`lib/ebayTitle.ts`) trims to 80 at a word boundary, applied in `/api/generate` and in `lib/ebay.ts` where a seller-edited title also passes. The schema no longer rejects on length |
 | A schema miss failed the request outright — no retry, no fallthrough | `isProviderFailure()` only recognised `APICallError` and `RetryError`, so `NoObjectGeneratedError` skipped the chain entirely | Included now. A schema miss is sampling luck as much as anything, another model is a fair bet, and on the free chain it costs nothing |
 | `Vercel Runtime Timeout Error: Task timed out after 300 seconds`, despite a 45s budget | **The budget was advisory.** `withBackoff` gates whether to *start* another attempt and cannot interrupt one in flight, and `generateText` has no timeout of its own — so a `gemini-3.5-flash` call that never came back held the request until `maxDuration` killed it | `PER_CALL_TIMEOUT_MS` (25s) with a fresh `AbortSignal.timeout()` per attempt, passed into every `generateText` as `abortSignal`. An abort counts as a provider failure, so the next model gets the remaining time |
+| `TimeoutError: The operation was aborted due to timeout` on healthy calls, right after a schema change | The per-call timeout is sized from how long generation *actually* takes, and that moves when the response gets bigger. Adding `marketFit` (a ranking, a price range and a reason per platform) pushed generation past the 25s cap that had been comfortable | Raised to 35s, chain budget 45s → 50s. **Re-measure after any schema change that makes the model write appreciably more** — the symptom looks like a provider fault but is self-inflicted |
 | A guessed Gemini id 404s: `not found for API version v1beta, or is not supported for generateContent` | Model ids can't be guessed from the version number. Probed 25 Sep 2026: `gemini-3.6-flash-lite` and `gemini-3.6-pro` **don't exist**; `gemini-3.6-flash`, `gemini-3.5-flash` and `gemini-3.5-flash-lite` all work | A bad id costs nothing — it 404s before generating, and the chain falls through — so probing is the cheap way to find valid ids. `gemini-3.5-pro` and `gemini-3.6-flash-latest` are untested |
 | A spent daily quota was being retried for the full budget | Google returns the daily cap as a **429 with `isRetryable: true` and a `retryDelay: 32s`**, indistinguishable from a per-minute rate limit by status or message. The quota id that tells them apart is in the *response body*, not the message. | `isExhaustedForTheDay()` looks for `PerDay` in the response body and treats it as terminal; per-minute limits stay retryable |
 
@@ -142,7 +149,7 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 ## Ideas not yet built
 
 - Bulk mode: several items in one session.
-- Price research: check eBay sold listings for a realistic figure rather than the model's estimate.
+- Price research: check eBay sold listings for a realistic figure rather than the model's estimate. This is now also what would put real numbers behind `marketFit`'s ranking — at present every range on that card is inferred from the photos. eBay's sold data needs the Marketplace Insights API, which requires separate approval; the other three platforms have no equivalent, so their ranges would stay estimates either way.
 - Marking an item as sold, and tracking which platform sold it.
 - Tests around `lib/ebay.ts` — the error paths are intricate and all hand-verified so far.
 

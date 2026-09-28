@@ -3,6 +3,7 @@ import { generateResultSchema } from '@/lib/schema';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { runWithProviders } from '@/lib/provider';
 import { fitEbayTitle } from '@/lib/ebayTitle';
+import { normaliseMarketFit } from '@/lib/marketFit';
 
 export const maxDuration = 300;
 
@@ -21,7 +22,22 @@ Rules:
 - If a detail matters but isn't visible (e.g. size label), write the field with a [CHECK: ...] placeholder so the seller fills it in.
 - Mention visible flaws honestly — it reduces returns and disputes.
 - Prices in GBP, realistic for the second-hand market.
-- Descriptions: eBay slightly formal with specs; Vinted short and friendly; Gumtree and Facebook plain and local-friendly.`;
+- Descriptions: eBay slightly formal with specs; Vinted short and friendly; Gumtree and Facebook plain and local-friendly.
+
+Also rank the four platforms by what this specific item would actually net the seller (marketFit).
+Rank all four, 1 = pays best, and give a realistic GBP range for each. What moves the number:
+- Who shops there. Vinted is clothing, shoes, bags and kidswear to people hunting brands; eBay is
+  everything, and the only one with real demand for electronics, parts, collectables and niche items;
+  Gumtree and Facebook Marketplace are local buyers, mostly furniture, white goods, bikes, garden and
+  bulky things nobody wants to post.
+- Postage. Anything heavy or awkward loses its margin to shipping, which pushes it towards the local
+  platforms even when a national audience would pay more. Small and light favours Vinted and eBay.
+- Reach versus speed. eBay's audience is the largest, so rare or specific items find their buyer
+  there; a common item may simply sell faster locally for slightly less.
+- Fees and payouts differ per platform and change often — factor them in generally, but do not quote
+  specific fee percentages, because you cannot know today's rates.
+Be honest about the ranges: they are estimates from the photos, not sold-price data. If the item is
+one where condition or a hidden detail would swing the price a lot, say so in the reason.`;
 
 export async function POST(request: Request) {
   try {
@@ -66,6 +82,7 @@ export async function POST(request: Request) {
 
     return Response.json({
       ...output,
+      marketFit: normaliseMarketFit(output.marketFit),
       ebayDraft: { ...output.ebayDraft, title: fitEbayTitle(output.ebayDraft.title) },
     });
   } catch (error) {

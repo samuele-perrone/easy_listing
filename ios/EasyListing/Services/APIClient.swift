@@ -19,6 +19,8 @@ struct APIClient {
         var title: String
         var summary: String
         var listings: [GeneratedListing]
+        /// Optional: an older backend deployment won't send it.
+        var marketFit: MarketFit?
         var ebayDraft: EbayDraft
     }
 

@@ -14,7 +14,7 @@ import { APICallError, RetryError } from 'ai';
  * chain under a minute because longer requests tend to lose the connection
  * before they answer). These defaults only apply if nobody says otherwise.
  */
-const DEFAULT_BUDGET_MS = 45_000;
+const DEFAULT_BUDGET_MS = 50_000;
 
 /**
  * Waits between attempts, growing so a longer outage gets a longer pause —

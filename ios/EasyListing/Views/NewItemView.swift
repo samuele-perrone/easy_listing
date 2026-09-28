@@ -105,6 +105,7 @@ struct NewItemView: View {
             let response = try await APIClient.generateListings(photos: photos, notes: notes)
             let photosData = photos.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
             let item = Item(title: response.title, summary: response.summary, photosData: photosData)
+            item.marketFit = response.marketFit
             modelContext.insert(item)
             for generated in response.listings {
                 guard let platform = Platform(rawValue: generated.platform) else { continue }
