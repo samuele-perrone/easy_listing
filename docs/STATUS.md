@@ -116,15 +116,25 @@ So the choice is now clear rather than open:
 - **Personal use only, free.** 20 generations/day is plenty for one seller. This is where the project stands today.
 - **Anything with testers or users needs a paid key.** 20/day is a *project* pool; five testers listing a few items each exhaust it before lunch.
 
-**This deployment is free-only, by choice** (25 Sep 2026). No paid key is set, and the chain is filled with free models instead:
+**The chain now ends in a paid key** (28 Sep 2026). Free models are still tried first, in order, and Anthropic only sees what all three refused:
+
+    gemini-3.6-flash  →  gemini-3.5-flash  →  gemini-3.5-flash-lite  →  claude-sonnet-5 (paid)
+
+Verified live the day it was added, with all three free models unavailable: two out of quota (rejected in about a second each), the third busy through two retries, then `falling back to anthropic:claude-sonnet-5 (paid)` and a complete result — 77-character eBay title, `USED_GOOD`, a sensible ranking. About 50s end to end, which the app no longer feels since it polls a job rather than holding a connection.
+
+Cost tracks *failures of the free tier*, not traffic. Two consequences worth remembering: on a day when the free quota is already spent, every request goes to the paid model, so the day you notice the bill is the day the free tier gave up early; and the log line says `(paid)` explicitly, so `vercel logs` will tell you which requests cost money. Actual spend is in the Anthropic console.
+
+To go back to free-only, remove `ANTHROPIC_API_KEY` and redeploy — `resolveModelChain()` simply stops appending the paid candidate.
+
+**The free part of the chain** (still first in line):
 
     GOOGLE_MODELS=gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite
 
-Because the daily cap is per *model*, that is **60 free generations a day** rather than 20, and a model with no capacity falls through to the next one instead of failing the request. Ordered best-first, so quality degrades only once the better models are spent — `gemini-3.5-flash-lite` was checked by hand and produces all four platforms, a valid eBay condition enum, and keeps a flaw mentioned in the seller notes.
+Because the daily cap is per *model*, that is **60 free generations a day** rather than 20, and a model with no capacity falls through to the next one instead of failing the request. That 60 is the ceiling — six other model ids were probed and none exist, see the gotchas table. Ordered best-first, so quality degrades only once the better models are spent — `gemini-3.5-flash-lite` was checked by hand and produces all four platforms, a valid eBay condition enum, and keeps a flaw mentioned in the seller notes.
 
 The env var reads `Sensitive` in Vercel (that's just `vercel env add`'s default), so its value can't be read back — it's recorded above for that reason.
 
-**A paid fallback remains possible but is deliberately not configured.** `resolveModelChain()` appends an Anthropic candidate if `ANTHROPIC_API_KEY` is ever set, and `lib/provider.ts` would then pay only for what every free model refused. Setting that key is the one action that starts billing, so it shouldn't happen by accident. `GENERATION_MODEL` in the production env still reads `anthropic/claude-sonnet-5`; it's inert (only the no-direct-key gateway branch reads it) but it's the one place a Claude reference survives.
+`GENERATION_MODEL` in the production env still reads `anthropic/claude-sonnet-5`. It's inert — only the no-direct-key gateway branch reads it, and that branch is now unreachable twice over.
 
 **Retry budgets are bounded by the iOS client, not `maxDuration`.** `APIClient.generateListings` gives up after 120s and the eBay call after 180s, so the budgets are 100s and 40s. Raising them means editing `APIClient.swift` and shipping a new TestFlight build first — the server going quiet for longer than the phone will wait just turns a clear error into a timeout.
 
