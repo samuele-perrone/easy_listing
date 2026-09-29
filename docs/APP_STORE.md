@@ -56,6 +56,70 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 
 ---
 
+## Manual steps left in App Store Connect
+
+Everything below is what an automated pass could not finish on 29 Sep 2026. Values are exact — paste them.
+
+### 1. App Information  (General → App Information)
+
+This page rendered blank twice during the automated attempt; if it still does, try a different browser or window.
+
+| Field | Value |
+|---|---|
+| Subtitle | `Photos to marketplace listings` |
+| Primary category | Shopping |
+| Secondary category | Productivity |
+| Age rating | Start the questionnaire and answer **None / No** to everything → expect **4+** |
+
+Don't put eBay, Vinted, Gumtree or Facebook in the **name or subtitle** — third-party trademarks there invite a 5.2.1 rejection. They're fine in the description body, where they already are.
+
+### 2. Pricing and Availability
+
+Price: **Free**. Availability: all territories, unless there's a reason to narrow it — the app is UK-shaped (GBP prices, `EBAY_GB`), so restricting to the UK and Ireland is defensible and reduces confused reviews.
+
+### 3. Build
+
+Attach **build 7** to version 1.0 (Build section → +). Build 7 is the first one that sends `x-install-id`, so it's the first that counts against a per-install allowance instead of the shared bucket.
+
+### 4. App Review Information
+
+Contact details, plus these notes:
+
+    Sign-in is not required to try the app. Tap +, add photos of any object, and tap
+    Generate listings. Generation takes 20-90 seconds and runs as a background job,
+    so the item appears in the list immediately and fills in when it's ready.
+
+    Connecting an eBay account is optional and only needed for posting directly to
+    eBay. Vinted, Gumtree and Facebook Marketplace use a copy-to-clipboard flow
+    because they have no public seller API.
+
+    Photos are sent to Google's Gemini API, and to Anthropic's API when Gemini is
+    unavailable, to generate the listing text. This is described in the privacy
+    policy. No account is created and no personal data is collected.
+
+    There is a daily limit of 30 generations per install. If you exceed it during
+    review, the app says so plainly and the limit resets the next day.
+
+### 5. App Privacy → Publish
+
+The answers are entered (Photos or Videos → App Functionality → not linked to identity → not used for tracking) but **not published**. Read them first: it's a declaration about what the app does with people's data, and it should be published by the person answering for it.
+
+### 6. Trader status  (Business section)
+
+The EU Digital Services Act requires a trader status before a new app can be submitted for EU distribution. App Store Connect shows this as a banner on the Apps list. Not optional if the app is available in the EU.
+
+### 7. Screenshots
+
+Five are captured at 1320×2868 but use colour swatches where item photos belong. Replace `swatch()` in `ios/EasyListing/ScreenshotSeed.swift` with real photos and re-run the capture (see STATUS.md), then upload 3–10 under iPhone 6.9".
+
+### 8. Outside App Store Connect
+
+Set a **spend limit on the Anthropic API key** in the Anthropic console. The daily ceilings in `lib/usage.ts` bound spend if the code is right; a limit on the key bounds it even if the code is wrong.
+
+### Already done — don't redo
+
+Promotional text, description, keywords, support URL, copyright, privacy policy URL, and the App Privacy answers. Export compliance is declared in `Info.plist` (`ITSAppUsesNonExemptEncryption: false`), so no upload prompt.
+
 ## Draft metadata
 
 ### Name (30 characters max)
