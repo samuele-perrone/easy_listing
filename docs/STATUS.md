@@ -68,6 +68,21 @@ Verified live 29 Sep 2026 with the per-install limit temporarily set to 3: three
 
 Known housekeeping: usage markers are never deleted, like job blobs.
 
+## App Store screenshots
+
+Captured by a UI test, the way fastlane does it — `ios/EasyListingUITests/ScreenshotTests.swift`:
+
+    cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme Screenshots \
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
+      -resultBundlePath ./build/screenshots.xcresult
+    xcrun xcresulttool export attachments --path ./build/screenshots.xcresult --output-path <dir>
+
+iPhone 17 Pro Max gives 1320×2868, which is the 6.9" size Apple asks for. The `Screenshots` scheme is separate from `EasyListing` so a normal `xcodebuild test` doesn't boot a simulator UI.
+
+The app is launched with `-seedScreenshotData` and fills an empty store from `ScreenshotSeed.swift`, so no network call, no paid model and no slice of the daily allowance is spent on pictures. **That file is wrapped in `#if DEBUG`** — verified by building Release and grepping the binary for it: zero matches. The seeded copy is real output from generations on 28–29 Sep, not invented, because a screenshot promising something the app doesn't say is a small lie to everyone who reads it.
+
+Outstanding: the seeded items use flat colour swatches where the photos go, which reads as unfinished. Replacing `ScreenshotSeed.swift`'s `swatch()` with real item photos and re-running is the remaining work.
+
 ## Camera
 
 Photos are taken with a **custom overlay** on `UIImagePickerController` (`showsCameraControls = false`), not the system controls. The stock camera confirms every shot with "Use Photo" / "Retake" and returns a single image, so photographing one item from four angles meant entering and leaving the camera four times. The overlay is a shutter that keeps shooting, a running count, and a Done button.

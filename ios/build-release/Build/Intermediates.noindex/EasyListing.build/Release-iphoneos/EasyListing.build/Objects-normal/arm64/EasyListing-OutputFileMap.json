@@ -1,0 +1,91 @@
+{
+  "" : {
+    "const-values" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.swiftconstvalues",
+    "dependencies" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.d",
+    "diagnostics" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.dia",
+    "emit-module-dependencies" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary-emit-module.dia",
+    "pch" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.swiftdeps"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/EasyListingApp.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListingApp.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListingApp.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListingApp.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Models.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Models.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/ScreenshotSeed.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ScreenshotSeed.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ScreenshotSeed.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ScreenshotSeed.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Services/APIClient.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/APIClient.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/APIClient.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/APIClient.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Services/EbayAuthService.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EbayAuthService.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EbayAuthService.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EbayAuthService.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Services/GenerationCoordinator.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GenerationCoordinator.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GenerationCoordinator.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GenerationCoordinator.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Services/Keychain.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Keychain.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Keychain.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/Keychain.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/CameraPicker.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/CameraPicker.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/CameraPicker.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/CameraPicker.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/ErrorAlert.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ErrorAlert.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ErrorAlert.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ErrorAlert.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/HistoryView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/HistoryView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/HistoryView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/HistoryView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/ItemDetailView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ItemDetailView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ItemDetailView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/ItemDetailView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/MarketFitView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/MarketFitView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/MarketFitView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/MarketFitView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/NewItemView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/NewItemView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/NewItemView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/NewItemView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/PlatformListingView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/PlatformListingView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/PlatformListingView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/PlatformListingView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Views/SettingsView.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

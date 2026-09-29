@@ -49,6 +49,20 @@ targets:
         DEVELOPMENT_TEAM: 7RYYQ8M5X5
         GENERATE_INFOPLIST_FILE: YES
 
+  # Drives the app to capture App Store screenshots. Separate from the unit
+  # tests so `xcodebuild test` doesn't boot a simulator UI on every run.
+  EasyListingUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [EasyListingUITests]
+    dependencies:
+      - target: EasyListing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.samperrone.easylisting.uitests
+        DEVELOPMENT_TEAM: 7RYYQ8M5X5
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   EasyListing:
     build:
@@ -57,3 +71,11 @@ schemes:
         EasyListingTests: [test]
     test:
       targets: [EasyListingTests]
+
+  Screenshots:
+    build:
+      targets:
+        EasyListing: all
+        EasyListingUITests: [test]
+    test:
+      targets: [EasyListingUITests]

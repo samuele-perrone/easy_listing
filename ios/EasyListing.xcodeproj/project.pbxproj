@@ -12,6 +12,7 @@
 		187CCD9E74756270D24DA9D8 /* EasyListingApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */; };
 		1944ECFD8C78648345815EBE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F520AD7337592BEA88A3FA0D /* SettingsView.swift */; };
 		1E0129E21D1C33C897B9DD09 /* MarketFitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A75A8381ED174195926C58CB /* MarketFitView.swift */; };
+		22FD016082D1C045CFE8ACD9 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44FF8B17040C7E5982C39BD8 /* ScreenshotTests.swift */; };
 		286A848D5DAD8BF44D211776 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEED068569C00772F8E7437F /* ErrorAlert.swift */; };
 		3093FE017ED3979E61DCF136 /* PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B069B1EC7F16752DA818CD99 /* PlatformTests.swift */; };
 		3719311EB00DAF4FF113B025 /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270743E5C40DC357F4CC4F92 /* ItemDetailView.swift */; };
@@ -25,6 +26,7 @@
 		D04381176494D6A7C0F2F503 /* PlatformListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D3F10C893CA15111AD5668 /* PlatformListingView.swift */; };
 		D7D90656448881ACB581E6EE /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BE6627D3973C84FD16A37F /* CameraPicker.swift */; };
 		EAE410BAB8FE54F8CA534432 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD9261D20F8E83DBAF84714 /* APIClient.swift */; };
+		FD82253DD48636D62163074E /* ScreenshotSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2BD98F7AF491C1C58FDD62 /* ScreenshotSeed.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,13 +37,22 @@
 			remoteGlobalIDString = 4E9C1134C073C556B27EABC5;
 			remoteInfo = EasyListing;
 		};
+		65AAC7D5C4C71C15EA801145 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 57C8C980E4FD95D8CE7DA673 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4E9C1134C073C556B27EABC5;
+			remoteInfo = EasyListing;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		1AB2C9C5137C8C80E450949D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		200D04326569375AAA38A13B /* EasyListingUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EasyListingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		270743E5C40DC357F4CC4F92 /* ItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailView.swift; sourceTree = "<group>"; };
 		39DE39D03067B4C9D4DF534E /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		41B25CFF008F8C05AA188C62 /* EbayAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbayAuthService.swift; sourceTree = "<group>"; };
+		44FF8B17040C7E5982C39BD8 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		4F6280F8B3B220D76A650D00 /* GenerationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationCoordinator.swift; sourceTree = "<group>"; };
 		5EC39570FF0E86C3CDFEB2E1 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		71B4E83D9B686FAF46DB1D1F /* ListingEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListingEditingTests.swift; sourceTree = "<group>"; };
@@ -55,6 +66,7 @@
 		BFE786773F55484251C066F4 /* EasyListing.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EasyListing.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCE494CA2C2ED8AC298E7EE2 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyListingApp.swift; sourceTree = "<group>"; };
+		CE2BD98F7AF491C1C58FDD62 /* ScreenshotSeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSeed.swift; sourceTree = "<group>"; };
 		DEED068569C00772F8E7437F /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
 		F1BE6627D3973C84FD16A37F /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		F520AD7337592BEA88A3FA0D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -62,6 +74,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		0E560AD9BC75BEF37EE8B213 /* EasyListingUITests */ = {
+			isa = PBXGroup;
+			children = (
+				44FF8B17040C7E5982C39BD8 /* ScreenshotTests.swift */,
+			);
+			path = EasyListingUITests;
+			sourceTree = "<group>";
+		};
 		22497380953239EB02BE8731 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -105,6 +125,7 @@
 				CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */,
 				9304DE6E366834EF1BF59157 /* Info.plist */,
 				39DE39D03067B4C9D4DF534E /* Models.swift */,
+				CE2BD98F7AF491C1C58FDD62 /* ScreenshotSeed.swift */,
 				22497380953239EB02BE8731 /* Services */,
 				707573638C1E6B5E743DA3A8 /* Views */,
 			);
@@ -116,6 +137,7 @@
 			children = (
 				C43FAEDA6EFCD305166BF3E3 /* EasyListing */,
 				4E05770AB44BB68F05BB9800 /* EasyListingTests */,
+				0E560AD9BC75BEF37EE8B213 /* EasyListingUITests */,
 				E41989DC9247BF7CED2AC1A6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -125,6 +147,7 @@
 			children = (
 				BFE786773F55484251C066F4 /* EasyListing.app */,
 				B154C0FC7A38754BE8A75791 /* EasyListingTests.xctest */,
+				200D04326569375AAA38A13B /* EasyListingUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +155,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0567F4A62048A9DC480601C3 /* EasyListingUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 05FB050D0886133FAEE10F42 /* Build configuration list for PBXNativeTarget "EasyListingUITests" */;
+			buildPhases = (
+				689EB7FC56BE3A4CFF4875FF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				29C8EB00BE05B0C429FD708B /* PBXTargetDependency */,
+			);
+			name = EasyListingUITests;
+			packageProductDependencies = (
+			);
+			productName = EasyListingUITests;
+			productReference = 200D04326569375AAA38A13B /* EasyListingUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		4E9C1134C073C556B27EABC5 /* EasyListing */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 75C4F21EFA028CB60A008589 /* Build configuration list for PBXNativeTarget "EasyListing" */;
@@ -177,6 +218,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					0567F4A62048A9DC480601C3 = {
+						DevelopmentTeam = 7RYYQ8M5X5;
+						TestTargetID = 4E9C1134C073C556B27EABC5;
+					};
 					4E9C1134C073C556B27EABC5 = {
 						DevelopmentTeam = 7RYYQ8M5X5;
 						ProvisioningStyle = Automatic;
@@ -202,6 +247,7 @@
 			targets = (
 				4E9C1134C073C556B27EABC5 /* EasyListing */,
 				822B469510B8772FEAC299FE /* EasyListingTests */,
+				0567F4A62048A9DC480601C3 /* EasyListingUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -235,7 +281,16 @@
 				ACC9844FF834560BF02A32A3 /* Models.swift in Sources */,
 				718FB97856889E3403E87FE4 /* NewItemView.swift in Sources */,
 				D04381176494D6A7C0F2F503 /* PlatformListingView.swift in Sources */,
+				FD82253DD48636D62163074E /* ScreenshotSeed.swift in Sources */,
 				1944ECFD8C78648345815EBE /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		689EB7FC56BE3A4CFF4875FF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22FD016082D1C045CFE8ACD9 /* ScreenshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,6 +307,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		29C8EB00BE05B0C429FD708B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4E9C1134C073C556B27EABC5 /* EasyListing */;
+			targetProxy = 65AAC7D5C4C71C15EA801145 /* PBXContainerItemProxy */;
+		};
 		B27ABC050B8A8001D51E636C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4E9C1134C073C556B27EABC5 /* EasyListing */;
@@ -335,6 +395,42 @@
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.10;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5E312065000A7BE9E683B9DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EasyListing;
+			};
+			name = Release;
+		};
+		6FF96EADE2B541E558EB2C28 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 7RYYQ8M5X5;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.samperrone.easylisting.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EasyListing;
 			};
 			name = Debug;
 		};
@@ -462,6 +558,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		05FB050D0886133FAEE10F42 /* Build configuration list for PBXNativeTarget "EasyListingUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6FF96EADE2B541E558EB2C28 /* Debug */,
+				5E312065000A7BE9E683B9DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		75C4F21EFA028CB60A008589 /* Build configuration list for PBXNativeTarget "EasyListing" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

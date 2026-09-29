@@ -1,0 +1,12 @@
+{
+  "/Users/sam/Sites/easy_listing/ios/EasyListing/Services/APIClient.swift" : {
+    "abi-baseline-json" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing.abi.json",
+    "const-values" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.swiftconstvalues",
+    "dependencies" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.d",
+    "diagnostics" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-primary.dia",
+    "objc-header" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing-Swift.h",
+    "swiftdoc" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing.swiftdoc",
+    "swiftmodule" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing.swiftmodule",
+    "swiftsourceinfo" : "/Users/sam/Sites/easy_listing/ios/build-release/Build/Intermediates.noindex/EasyListing.build/Release-iphoneos/EasyListing.build/Objects-normal/arm64/EasyListing.swiftsourceinfo"
+  }
+}

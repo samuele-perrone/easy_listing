@@ -46,7 +46,7 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 | Name, subtitle, promo text, description, keywords | ✅ entered and saved 29 Sep 2026 |
 | Copyright | ✅ `2026 Samuele Perrone` |
 | Support URL | ✅ `https://easy-listing-chi.vercel.app/support` — contact address plus the failures a user is most likely to hit |
-| Screenshots — 6.9" and 6.5" iPhone | ❌ needed, 3–10 each |
+| Screenshots — 6.9" iPhone | ⚠️ five captured at 1320×2868, **not uploaded** — the item photos in them are flat colour placeholders, which reads as unfinished in a store listing. Needs real item photos, then a re-run |
 | App Privacy questionnaire | ⚠️ **answered but not published** — Photos or Videos → App Functionality → not linked to identity → not used for tracking. Deliberately left unpublished: it's a legal declaration and needs the developer's own read before it goes live |
 | Age rating questionnaire | ❌ needed — expect 4+. App Store Connect's App Information page rendered blank on 29 Sep and this couldn't be completed |
 | Build attached to the version | ❌ needed — build 6 is uploaded and VALID, but not yet selected for the 1.0 version |
