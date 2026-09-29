@@ -264,6 +264,16 @@ Two steps that are easy to miss, both of which cost time here: a tester has to b
 
 To ship a new build: bump `CURRENT_PROJECT_VERSION` in `ios/project.yml`, then `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
 
+**`UPLOAD SUCCEEDED with no errors` is not proof the build arrived.** On 29 Sep 2026 two consecutive build 9 uploads printed that line and exited 0, while the log also carried `CHANGE UPLOAD STATE TO COMPLETE (…): received status code 500` from Apple — and the build never appeared in App Store Connect at all. Archive and export were clean both times; it was an Apple-side outage.
+
+So verify against the API rather than the upload output:
+
+    python - <<'EOF'   # needs pyjwt + cryptography
+    # JWT with the ASC key, then GET /v1/builds?filter[app]=<id>&sort=-uploadedDate
+    EOF
+
+or just watch for the build in TestFlight. If `grep -c "internal server error"` on the release log is non-zero, treat the upload as failed no matter what the last line says, and retry later — the build number stays free because nothing registered.
+
 There are **two** keys in that directory. `5LGP386KP6` is the one that works — `WTZ5R5WGCQ` is stale or for something else. The issuer ID is a UUID that appears nowhere on disk, so it has to come from App Store Connect → Users and Access → Integrations, or from wherever you've stored it. Neither belongs in the repo.
 
 `release.sh` takes about 2 minutes end to end (archive ~1m40s, export ~2s, upload ~5s), then 5–15 minutes of processing before the build appears in TestFlight.
