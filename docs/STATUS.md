@@ -85,6 +85,14 @@ The app is launched with `-seedScreenshotData` and fills an empty store from `Sc
 
 Outstanding: the seeded items use flat colour swatches where the photos go, which reads as unfinished. Replacing `ScreenshotSeed.swift`'s `swatch()` with real item photos and re-running is the remaining work.
 
+## Image encoding never runs on the main thread
+
+`APIClient.encodedImages` resizes, JPEG-encodes and base64s every photo, and repeats the whole pass up to four times to fit the 3 MB upload budget. `NewItemView` separately resizes and encodes them again for storage. Both used to run on the main actor.
+
+The symptom wasn't "slow" — it was **duplicate items**. Blocking the main thread means SwiftUI can't repaint, so tapping Generate left the button looking untouched: no spinner, no disabled state. The seller reasonably taps again, and the second tap lands. A `guard !isGenerating` (added in build 6) closes the same-frame race but not this one, because the taps are seconds apart with a frozen UI in between.
+
+Both paths now run under `Task.detached(priority: .userInitiated)`. Keep them there: anything that resizes or encodes photos on the main actor reintroduces a frozen button, and the visible bug will be duplicates rather than slowness.
+
 ## Camera
 
 Photos are taken with a **custom overlay** on `UIImagePickerController` (`showsCameraControls = false`), not the system controls. The stock camera confirms every shot with "Use Photo" / "Retake" and returns a single image, so photographing one item from four angles meant entering and leaving the camera four times. The overlay is a shutter that keeps shooting, a running count, and a Done button.

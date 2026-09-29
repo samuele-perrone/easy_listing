@@ -109,7 +109,13 @@ struct NewItemView: View {
         // Save the item with its photos *first*. Generation can fail — the free
         // tier runs out, the provider gets busy — and losing the photos to that
         // means re-shooting the item. Now a failure is a Retry in the list.
-        let photosData = photos.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
+        // Also off the main thread — same reason as the upload encoding: this
+        // resizes and JPEG-encodes every photo, and doing it here froze the
+        // button in its un-pressed state for as long as it took.
+        let captured = photos
+        let photosData = await Task.detached(priority: .userInitiated) {
+            captured.compactMap { $0.resized(maxDimension: 1600).jpegData(compressionQuality: 0.8) }
+        }.value
         let item = Item(
             title: Item.placeholderTitle(notes: notes),
             summary: "",
@@ -124,7 +130,6 @@ struct NewItemView: View {
 
         // Hand off and close: the work carries on whether or not this screen,
         // or the app, is still open.
-        let captured = photos
         let context = modelContext
         Task { await GenerationCoordinator.shared.start(item: item, photos: captured, context: context) }
 

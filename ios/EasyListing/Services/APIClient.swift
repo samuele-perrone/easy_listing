@@ -57,6 +57,23 @@ struct APIClient {
     /// Encodes photos as base64 JPEGs small enough for the server to accept, stepping
     /// down resolution and quality until they fit. Vercel rejects bodies over 4.5 MB,
     /// so the budget leaves headroom for the surrounding JSON.
+    /// Off the main thread, always.
+    ///
+    /// `encodedImages` resizes, JPEG-encodes and base64s every photo, and
+    /// repeats the whole pass up to four times to fit the upload budget. Run on
+    /// the main actor that blocks rendering for seconds: the Generate button
+    /// never repaints as disabled, so it looks like the tap didn't register and
+    /// the seller taps again — which is how one intent became two items.
+    private static func encodedImagesOffMain(
+        from photos: [UIImage],
+        maxDimension: CGFloat,
+        quality: CGFloat
+    ) async -> [String] {
+        await Task.detached(priority: .userInitiated) {
+            encodedImages(from: photos, maxDimension: maxDimension, quality: quality)
+        }.value
+    }
+
     private static func encodedImages(from photos: [UIImage], maxDimension: CGFloat, quality: CGFloat) -> [String] {
         let budget = 3_000_000
         var dimension = maxDimension
@@ -107,7 +124,7 @@ struct APIClient {
     /// being cut — "The network connection was lost", with the photos gone too.
     /// This starts the work and lets the phone check back.
     static func startGeneration(photos: [UIImage], notes: String) async throws -> String {
-        let images = encodedImages(from: photos, maxDimension: 1100, quality: 0.6)
+        let images = await encodedImagesOffMain(from: photos, maxDimension: 1100, quality: 0.6)
         guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
 
         var request = URLRequest(url: baseURL.appending(path: "/api/generate/start"))
@@ -136,7 +153,7 @@ struct APIClient {
 
     /// Sends the item photos (+ optional notes) and gets back per-platform listing fields.
     static func generateListings(photos: [UIImage], notes: String) async throws -> GenerateResponse {
-        let images = encodedImages(from: photos, maxDimension: 1100, quality: 0.6)
+        let images = await encodedImagesOffMain(from: photos, maxDimension: 1100, quality: 0.6)
         guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
 
         var request = URLRequest(url: baseURL.appending(path: "/api/generate"))

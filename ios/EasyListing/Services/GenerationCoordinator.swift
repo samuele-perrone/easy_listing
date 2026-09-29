@@ -76,7 +76,7 @@ final class GenerationCoordinator {
         watching.insert(jobId)
         defer { watching.remove(jobId) }
 
-        let assertion = await UIApplication.shared.beginBackgroundTask(withName: "generate-\(jobId)")
+        let assertion = UIApplication.shared.beginBackgroundTask(withName: "generate-\(jobId)")
         defer { UIApplication.shared.endBackgroundTask(assertion) }
 
         // The server gives up well before this; the ceiling is here so a job
