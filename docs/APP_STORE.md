@@ -6,6 +6,10 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 
 ## Blockers to resolve before submitting
 
+**0. The endpoint is open, and it now spends real money.** This moved from "theoretical" to "urgent" on 28 Sep, when `ANTHROPIC_API_KEY` was added. `/api/generate` and `/api/generate/start` have no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — a single `strings` on the app reveals it. Before the paid key the worst case was someone exhausting 60 free generations a day. Now the worst case is an unbounded bill on the developer's card, from anyone who finds the URL.
+
+A public App Store release publishes that binary to everyone. **Ship per-install limits before release, not after.** The shape that fits what's already built: a per-install identifier sent by the app, counted server-side, with a hard monthly ceiling — and the paid fallback only reachable within that ceiling.
+
 **1. Generation capacity — measured, and it's tiny.** Production runs on Gemini's free tier, capped at 20 generations per model per day. Three free models are chained, so **60 a day, shared across every install** — not per user. That is fine for one seller and nowhere near a public release; it's roughly a handful of testers' worth of one afternoon. The free tier also had sustained stretches with no capacity at all (0 of 5 requests succeeded on 23 Sep 2026), which the chain routes around only while some model still has capacity.
 
 Compounding it, `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — so the 20/day pool is exhaustible by anyone who finds the endpoint, not just by real users. Pick one before launch:
@@ -34,11 +38,15 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 | Requirement | Status |
 |---|---|
 | App icon (1024×1024, no alpha) | ✅ done |
-| Privacy policy URL | ✅ `https://easy-listing-chi.vercel.app/privacy` |
+| Privacy policy URL | ✅ `https://easy-listing-chi.vercel.app/privacy` — entered in App Store Connect 29 Sep 2026 |
+| Name, subtitle, promo text, description, keywords | ✅ entered and saved 29 Sep 2026 |
+| Copyright | ✅ `2026 Samuele Perrone` |
 | Support URL | ✅ `https://easy-listing-chi.vercel.app/support` — contact address plus the failures a user is most likely to hit |
 | Screenshots — 6.9" and 6.5" iPhone | ❌ needed, 3–10 each |
-| App Privacy questionnaire | ❌ needed — declare Photos, used for app functionality, not linked to identity |
-| Age rating questionnaire | ❌ needed — expect 4+ |
+| App Privacy questionnaire | ⚠️ **answered but not published** — Photos or Videos → App Functionality → not linked to identity → not used for tracking. Deliberately left unpublished: it's a legal declaration and needs the developer's own read before it goes live |
+| Age rating questionnaire | ❌ needed — expect 4+. App Store Connect's App Information page rendered blank on 29 Sep and this couldn't be completed |
+| Build attached to the version | ❌ needed — build 6 is uploaded and VALID, but not yet selected for the 1.0 version |
+| Pricing (free) | ❌ needed |
 | Category | Shopping (primary), Productivity (secondary) |
 | Export compliance | ✅ declared in Info.plist |
 
