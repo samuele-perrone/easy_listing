@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import EasyListing
 
@@ -47,4 +48,18 @@ struct PlaceholderTitleTests {
 
 private extension String {
     func repeated(_ times: Int) -> String { String(repeating: self, count: times) }
+}
+
+/// The identifier the backend counts generations against.
+struct InstallIdTests {
+    @Test func isStableAcrossCalls() {
+        // A new id on every call would hand out a fresh daily allowance each
+        // time, which is the whole thing the limit exists to stop.
+        #expect(APIClient.installId == APIClient.installId)
+    }
+
+    @Test func looksLikeARandomUUIDAndNothingDeviceDerived() {
+        let id = APIClient.installId
+        #expect(UUID(uuidString: id) != nil)
+    }
 }

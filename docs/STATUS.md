@@ -49,6 +49,25 @@ Known housekeeping: job blobs are never deleted. They're small JSON, but they ac
 
 Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
 
+## Spend is bounded server-side
+
+`/api/generate` and `/api/generate/start` refuse work past a daily allowance (`lib/usage.ts`), checked **before** generation starts — once a request reaches a paid model it has already cost money, so refusing afterwards would bound nothing.
+
+Two ceilings, and they do different jobs:
+
+- `DAILY_LIMIT_PER_INSTALL` (30) counts against an install id the app sends in `x-install-id`. That id is a random UUID in the Keychain — in the Keychain so a delete-and-reinstall doesn't hand out a fresh allowance, and random so it says nothing about the device or the person. It is **not a secret**: anyone can invent one, or send a new one per request. It shapes honest use; it does not stop abuse.
+- `DAILY_LIMIT_TOTAL` (200) is what actually bounds the bill, because it holds however many ids a caller invents.
+
+Requests with no id share one bucket named `unidentified`, which covers builds shipped before the header existed and anything hitting the endpoint with curl. `normaliseInstallId()` strips the id to `[A-Za-z0-9_-]` and 64 chars, because it lands in a blob path and a caller could otherwise choose their own storage layout.
+
+**Usage is one blob per generation, not a counter.** A counter needs read-modify-write, and two requests arriving together would read the same number and write the same increment — the cap would leak under exactly the load it exists to stop. Counting is a prefix list bounded by the cap itself. Blob refuses an empty body, so each marker holds its own timestamp.
+
+Verified live 29 Sep 2026 with the per-install limit temporarily set to 3: three requests accepted, the fourth and fifth refused with "You've used your 3 listings for today", and a different install id still accepted. Limits then restored to 30/200.
+
+**This does not replace a spend limit on the provider key.** Code can be wrong; a ceiling set in the Anthropic console cannot be argued with. Set both.
+
+Known housekeeping: usage markers are never deleted, like job blobs.
+
 ## Camera
 
 Photos are taken with a **custom overlay** on `UIImagePickerController` (`showsCameraControls = false`), not the system controls. The stock camera confirms every shot with "Use Photo" / "Retake" and returns a single image, so photographing one item from four angles meant entering and leaving the camera four times. The overlay is a shutter that keeps shooting, a running count, and a Done button.

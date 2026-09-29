@@ -1,6 +1,7 @@
 import { generateListings } from '@/lib/generate';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { quotaExhaustedBody } from '@/lib/generateErrors';
+import { checkUsage, normaliseInstallId, recordUsage } from '@/lib/usage';
 
 export const maxDuration = 300;
 
@@ -14,6 +15,13 @@ export async function POST(request: Request) {
     if (!images?.length) {
       return Response.json({ error: 'No images provided.' }, { status: 400 });
     }
+
+    const installId = normaliseInstallId(request.headers.get('x-install-id'));
+    const usage = await checkUsage(installId);
+    if (!usage.allowed) {
+      return Response.json({ error: usage.error, fix: usage.fix }, { status: 429 });
+    }
+    await recordUsage(installId);
 
     return Response.json(await generateListings(images, notes));
   } catch (error) {

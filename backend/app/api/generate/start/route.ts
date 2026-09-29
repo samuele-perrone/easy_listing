@@ -3,6 +3,7 @@ import { generateListings } from '@/lib/generate';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { genericFailureBody, quotaExhaustedBody } from '@/lib/generateErrors';
 import { newJobId, writeJob } from '@/lib/jobs';
+import { checkUsage, normaliseInstallId, recordUsage } from '@/lib/usage';
 
 export const maxDuration = 300;
 
@@ -21,6 +22,15 @@ export async function POST(request: Request) {
   if (!images?.length) {
     return Response.json({ error: 'No images provided.' }, { status: 400 });
   }
+
+  // Checked before the job exists: once generation starts it can reach a paid
+  // model, and refusing after that bounds nothing.
+  const installId = normaliseInstallId(request.headers.get('x-install-id'));
+  const usage = await checkUsage(installId);
+  if (!usage.allowed) {
+    return Response.json({ error: usage.error, fix: usage.fix }, { status: 429 });
+  }
+  await recordUsage(installId);
 
   const jobId = newJobId();
   await writeJob(jobId, { status: 'pending', startedAt: new Date().toISOString() });

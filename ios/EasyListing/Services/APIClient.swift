@@ -76,6 +76,20 @@ struct APIClient {
         }
     }
 
+    /// Identifies this installation to the backend's daily allowance — not the
+    /// person using it.
+    ///
+    /// Kept in the Keychain rather than UserDefaults so deleting and
+    /// reinstalling the app doesn't hand out a fresh allowance. It's a random
+    /// UUID with nothing derived from the device, and the server only ever
+    /// counts against it.
+    static var installId: String {
+        if let existing = Keychain.get("installId") { return existing }
+        let fresh = UUID().uuidString
+        Keychain.set(fresh, for: "installId")
+        return fresh
+    }
+
     /// A generation running on the server.
     struct JobStatus: Codable {
         var status: String
@@ -99,6 +113,7 @@ struct APIClient {
         var request = URLRequest(url: baseURL.appending(path: "/api/generate/start"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(installId, forHTTPHeaderField: "x-install-id")
         request.timeoutInterval = 60
         request.httpBody = try JSONEncoder().encode(["images": images, "notes": [notes]])
 
@@ -127,6 +142,7 @@ struct APIClient {
         var request = URLRequest(url: baseURL.appending(path: "/api/generate"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(installId, forHTTPHeaderField: "x-install-id")
         request.timeoutInterval = 120
         request.httpBody = try JSONEncoder().encode(["images": images, "notes": [notes]])
 

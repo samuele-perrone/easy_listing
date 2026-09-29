@@ -6,7 +6,11 @@ Draft metadata and the work that has to happen first. **Nothing here is submitte
 
 ## Blockers to resolve before submitting
 
-**0. The endpoint is open, and it now spends real money.** This moved from "theoretical" to "urgent" on 28 Sep, when `ANTHROPIC_API_KEY` was added. `/api/generate` and `/api/generate/start` have no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — a single `strings` on the app reveals it. Before the paid key the worst case was someone exhausting 60 free generations a day. Now the worst case is an unbounded bill on the developer's card, from anyone who finds the URL.
+**0. ~~The endpoint is open~~ — metered since 29 Sep 2026.** Daily ceilings now sit in front of both generate routes: 30 per install, 200 across everything, checked before any work starts. The global ceiling is the one that bounds the bill, since the install id is not a secret. Details in `STATUS.md`. What's left of this blocker is a policy decision rather than an exposure: 200/day is a cost ceiling, not a business model, and a real release still needs to decide who pays. **Also set a spend limit on the Anthropic key** — code can be wrong.
+
+The original framing, kept because it's why the ceilings exist:
+
+**The endpoint was open, and it had started spending real money.** This moved from "theoretical" to "urgent" on 28 Sep, when `ANTHROPIC_API_KEY` was added. `/api/generate` and `/api/generate/start` have no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — a single `strings` on the app reveals it. Before the paid key the worst case was someone exhausting 60 free generations a day. Now the worst case is an unbounded bill on the developer's card, from anyone who finds the URL.
 
 A public App Store release publishes that binary to everyone. **Ship per-install limits before release, not after.** The shape that fits what's already built: a per-install identifier sent by the app, counted server-side, with a hard monthly ceiling — and the paid fallback only reachable within that ceiling.
 
