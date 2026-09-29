@@ -64,7 +64,9 @@ Requests with no id share one bucket named `unidentified`, which covers builds s
 
 Verified live 29 Sep 2026 with the per-install limit temporarily set to 3: three requests accepted, the fourth and fifth refused with "You've used your 3 listings for today", and a different install id still accepted. Limits then restored to 30/200.
 
-**This does not replace a spend limit on the provider key.** Code can be wrong; a ceiling set in the Anthropic console cannot be argued with. Set both.
+**This does not replace a spend limit on the provider key.** Code can be wrong; a ceiling set in the Anthropic console cannot be argued with. Set both — a **$15/month** organisation limit is in place as of 29 Sep 2026.
+
+The two ceilings don't currently agree, deliberately. A generation with four photos and the full response is roughly 3–5p on Sonnet, so `DAILY_LIMIT_TOTAL` of 200 is about £8 of paid calls in a day — enough to exhaust a $15 month in two bad days. That's accepted for now, on the reasoning that the spend limit is a hard stop and the free models serve most traffic anyway, so the realistic failure is the app pausing rather than overspending. If real traffic arrives, lower `DAILY_LIMIT_TOTAL` (60 caps a worst-case day near £2.50) or raise the spend limit — the point is to pick which one gives way first, rather than find out.
 
 Known housekeeping: usage markers are never deleted, like job blobs.
 
