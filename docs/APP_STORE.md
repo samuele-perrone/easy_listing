@@ -75,7 +75,7 @@ Don't put eBay, Vinted, Gumtree or Facebook in the **name or subtitle** — thir
 
 ### 2. Pricing and Availability
 
-Price: **Free**. Availability: all territories, unless there's a reason to narrow it — the app is UK-shaped (GBP prices, `EBAY_GB`), so restricting to the UK and Ireland is defensible and reduces confused reviews.
+Price: **Free**. Availability: **United Kingdom only** — see the trader decision below. Not Ireland: Ireland is in the EU, and a non-trader can't distribute there. (An earlier draft of this file suggested "UK and Ireland", which was wrong.)
 
 ### 3. Build
 
@@ -104,9 +104,15 @@ Contact details, plus these notes:
 
 The answers are entered (Photos or Videos → App Functionality → not linked to identity → not used for tracking) but **not published**. Read them first: it's a declaration about what the app does with people's data, and it should be published by the person answering for it.
 
-### 6. Trader status  (Business section)
+### 6. Trader status  (Business section) — ✅ declared non-trader, 29 Sep 2026
 
-The EU Digital Services Act requires a trader status before a new app can be submitted for EU distribution. App Store Connect shows this as a banner on the Apps list. Not optional if the app is available in the EU.
+Under the DSA a "trader" is anyone distributing in the course of a trade, business, craft or profession — **it isn't about having a company**, and a sole individual can be one. Easy Listing is free, has no in-app purchases and earns nothing, so non-trader is the accurate answer, and it matches the Paid Apps Agreement being unsigned.
+
+The consequence, and the reason it shapes the release: **a non-trader cannot distribute in the EU.** Availability is therefore United Kingdom only. The UK is not in the EU, and the app is UK-shaped anyway — GBP prices, `EBAY_GB`, Gumtree — so this costs nothing today.
+
+The alternative was declaring trader, which publishes name, address, phone and email on the public App Store product page. The address on file is residential, so that was a permanent privacy trade for EU availability the app doesn't currently need.
+
+**Revisit this if the app ever charges.** A subscription or in-app purchase makes the activity commercial: trader status, the Paid Apps Agreement, and a contactable business address all become necessary together.
 
 ### 7. Screenshots
 
