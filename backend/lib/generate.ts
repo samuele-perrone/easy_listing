@@ -9,7 +9,7 @@ Given photos of an item (and optional seller notes), produce complete, ready-to-
 listings for four platforms. For each platform, output fields matching that platform's
 actual listing form:
 
-- ebay: Title (max 80 chars, keyword-rich), Description, Condition, Price, Category suggestion
+- ebay: Title (max 80 chars, keyword-rich), Description, Condition (eBay's own labels: New / New other / Like New / Used / Very Good / Good / Acceptable / For parts or not working), Price, Category suggestion
 - vinted: Title, Description (casual tone, include hashtags at the end), Brand, Size, Condition (Vinted's scale: New with tags / New without tags / Very good / Good / Satisfactory), Colour, Price
 - gumtree: Ad title, Description, Condition (New / Used), Price
 - facebook: Title, Description, Condition (New / Used - like new / Used - good / Used - fair), Category, Price

@@ -94,4 +94,30 @@ struct ListingEditingTests {
         let subject = listing(fields: [ListingField(label: "Title", value: "x")], draft: nil)
         #expect(subject.editedEbayDraft == nil)
     }
+
+    // The visible Condition field carries eBay's human wording, not its API
+    // enum. Letting it overwrite the enum sent "Used" to eBay, which answers
+    // 2004 "Could not serialize field [condition]" and fails the listing.
+    @Test("the displayed condition label doesn't overwrite the API enum", arguments: [
+        "Used", "Very good", "Used - like new", "Good", "",
+    ])
+    func keepsEnumWhenFieldHoldsALabel(displayed: String) {
+        let subject = listing(fields: [ListingField(label: "Condition", value: displayed)])
+        #expect(subject.editedEbayDraft?.condition == "USED_VERY_GOOD")
+    }
+
+    @Test("a condition picked from the picker still reaches the payload", arguments: [
+        "USED_EXCELLENT", "NEW", "FOR_PARTS_OR_NOT_WORKING", "LIKE_NEW",
+    ])
+    func pickedConditionReachesTheDraft(picked: String) {
+        let subject = listing(fields: [ListingField(label: "Condition", value: picked)])
+        #expect(subject.editedEbayDraft?.condition == picked)
+    }
+
+    @Test("every picker option is one the payload accepts")
+    func pickerOptionsAllResolve() {
+        for option in EbayDraft.conditionEnums {
+            #expect(EbayDraft.resolvedCondition(option) == option)
+        }
+    }
 }

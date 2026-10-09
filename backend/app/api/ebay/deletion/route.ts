@@ -39,9 +39,18 @@ export async function POST(request: Request) {
   // Easy Listing keeps no eBay user data server-side — OAuth tokens live in the
   // iOS Keychain on the seller's own device, and listing photos are the seller's
   // own. There is nothing to erase, so acknowledge and record the notification.
+  //
+  // Log the notification id only, never the body. eBay sends these for every
+  // account closure across the marketplace — a couple a minute — and the body
+  // carries that person's username, userId and eiasToken. Logging it in full
+  // put third parties' personal data in the request log (contradicting the
+  // paragraph above and /privacy), and the volume held log retention to about
+  // 26 minutes, which made every other failure on this backend undebuggable.
   try {
-    const body = await request.json();
-    console.log('eBay account deletion notification', JSON.stringify(body));
+    const body = (await request.json()) as {
+      notification?: { notificationId?: string };
+    };
+    console.log('eBay account deletion notification', body.notification?.notificationId ?? '(no id)');
   } catch {
     console.log('eBay account deletion notification (unparsable body)');
   }

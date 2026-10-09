@@ -158,16 +158,9 @@ struct PlatformListingView: View {
     private func choices(for field: ListingField) -> [String]? {
         guard listing.platform == .ebay,
               field.label.lowercased().contains("condition") else { return nil }
-        return [
-            "NEW",
-            "NEW_OTHER",
-            "LIKE_NEW",
-            "USED_EXCELLENT",
-            "USED_VERY_GOOD",
-            "USED_GOOD",
-            "USED_ACCEPTABLE",
-            "FOR_PARTS_OR_NOT_WORKING",
-        ]
+        // Same list `resolvedCondition` accepts, so picking one always survives
+        // into the posted payload.
+        return EbayDraft.conditionEnums
     }
 
     private func openPlatform() {

@@ -6,7 +6,7 @@
 import { chooseAspectValues, type CategoryAspect } from '@/lib/aspects';
 import { fitEbayTitle } from '@/lib/ebayTitle';
 import { EbayApiError } from '@/lib/ebayErrors';
-import { pickCondition, safeConditionWithoutPolicy } from '@/lib/ebayConditions';
+import { normaliseCondition, pickCondition, safeConditionWithoutPolicy } from '@/lib/ebayConditions';
 
 const ENV = process.env.EBAY_ENV === 'production' ? 'production' : 'sandbox';
 
@@ -162,8 +162,23 @@ async function ebayFetch(path: string, accessToken: string, init: RequestInit = 
 export async function supportedCondition(
   categoryTreeId: string,
   categoryId: string,
-  desired: string,
+  requested: string,
 ): Promise<string> {
+  // The app posts the condition as it appears on screen, which is the model's
+  // human wording ("Used", "Very good") rather than an enum. Resolve it before
+  // it reaches eBay, or eBay answers 2004 "Could not serialize field
+  // [condition]" — an error the seller can do nothing with.
+  const desired = normaliseCondition(requested);
+  if (!desired) {
+    throw new Error(
+      `"${requested}" isn’t a condition eBay recognises. ` +
+        `Tap Edit on the Condition field and choose one from the list.`,
+    );
+  }
+  if (desired !== requested) {
+    console.log(`eBay condition "${requested}" resolved to ${desired}`);
+  }
+
   const accessToken = await getApplicationToken();
   // The braces in eBay's filter syntax must be percent-encoded.
   const filter = `categoryIds:%7B${categoryId}%7D`;

@@ -107,6 +107,33 @@ struct EbayDraft: Codable, Hashable {
     var price: Double
     var currency: String
     var categoryQuery: String
+
+    /// eBay's Inventory API condition enums — the only values its API accepts.
+    static let conditionEnums = [
+        "NEW",
+        "NEW_OTHER",
+        "NEW_WITH_DEFECTS",
+        "CERTIFIED_REFURBISHED",
+        "SELLER_REFURBISHED",
+        "LIKE_NEW",
+        "USED_EXCELLENT",
+        "USED_VERY_GOOD",
+        "USED_GOOD",
+        "USED_ACCEPTABLE",
+        "FOR_PARTS_OR_NOT_WORKING",
+    ]
+
+    /// An enum if `text` already is one, else nil. The backend does the fuller
+    /// mapping from human wording (`normaliseCondition` in ebayConditions.ts);
+    /// this only guards against replacing a good enum with a display label.
+    static func resolvedCondition(_ text: String) -> String? {
+        let canonical = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+        return conditionEnums.contains(canonical) ? canonical : nil
+    }
 }
 
 enum PostStatus: String, Codable {
@@ -160,7 +187,17 @@ final class PlatformListing {
             let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
             if label.contains("title") { draft.title = value }
             else if label.contains("description") { draft.description = value }
-            else if label.contains("condition") { draft.condition = value }
+            else if label.contains("condition") {
+                // The visible Condition field holds eBay's human wording ("Used"),
+                // while draft.condition holds the enum eBay's API requires
+                // (USED_EXCELLENT). Overwriting blindly sent the label, which eBay
+                // rejects with error 2004 "Could not serialize field [condition]".
+                // So only override when the text resolves to a real enum — the
+                // picker's own values do, free text generally doesn't.
+                if let resolved = EbayDraft.resolvedCondition(value) {
+                    draft.condition = resolved
+                }
+            }
             else if label.contains("currency") { draft.currency = value }
             else if label.contains("category") { draft.categoryQuery = value }
             else if label.contains("price") {

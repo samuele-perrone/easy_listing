@@ -1,4 +1,4 @@
-# Status — as of 23 September 2026
+# Status — as of 9 October 2026
 
 Where the project stands, what's left, and the non-obvious things already solved.
 
@@ -6,9 +6,9 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 71 tests — error translation, condition fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 84 tests — error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
-      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 17 tests
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
 `npm run deploy` (from `backend/`) runs typecheck and tests before deploying.
 
@@ -16,11 +16,11 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Working end to end
 
-- **Listing generation.** Photos + optional notes → complete field sets for eBay, Vinted, Gumtree and FB Marketplace. Verified against the live backend. Output respects each platform's own vocabulary (eBay condition enums, Vinted's "Very good" scale, FB's "Used - like new") and inserts `[CHECK: ...]` placeholders rather than inventing details it can't see.
+- **Listing generation.** Photos + optional notes → complete field sets for eBay, Vinted, Gumtree and FB Marketplace. Verified against the live backend. Output respects each platform's own vocabulary (eBay's "Used", Vinted's "Very good" scale, FB's "Used - like new") and inserts `[CHECK: ...]` placeholders rather than inventing details it can't see.
 - **iOS app.** Installed and running on a physical iPhone 17 Pro. Camera and library import, history via SwiftData, per-platform tap-to-copy cards, deep links into the other marketplaces' apps.
 - **eBay OAuth.** Connects, stores tokens in the Keychain, refreshes them.
-- **eBay listing, end to end.** ✅ **A real listing was published live on the production account on 27 Aug 2026** (an Apple Watch Sport Band). The full chain works: inventory item → category → category-valid condition → required item specifics → business policies → merchant location → offer → publish.
-- **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed.
+- **eBay listing, end to end.** ⚠️ **A real listing was published live on the production account on 27 Aug 2026** (an Apple Watch Sport Band) — the full chain works in principle: inventory item → category → category-valid condition → required item specifics → business policies → merchant location → offer → publish. But **nothing has published since**: every attempt from 27 Aug to 9 Oct 2026 failed with eBay 2004 on the condition field (see the gotchas table). The fix is in but **has not yet been confirmed against a live publish.**
+- **Editing generated fields.** Every field is editable in-app before posting; eBay's condition uses a picker of valid enums. Edits feed the eBay payload, so what's on screen is what gets listed — **with one deliberate exception**: the Condition field shows eBay's human label ("Used") while the payload carries the enum (`USED_EXCELLENT`), because eBay's API only accepts the enum. `editedEbayDraft` overrides the enum only when the field's text resolves to one; the backend's `normaliseCondition()` maps the label otherwise. See the 2004 row in the gotchas table before changing either.
 - **Readable errors.** eBay's numeric failures are translated into what went wrong and what to do (`lib/ebayErrors.ts`). The raw payload is kept out of the alert and attached to an "Email support" action instead.
 
 ## Generation runs as a background job
@@ -123,7 +123,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 88 tests cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 110 tests (84 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
@@ -203,6 +203,7 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | Symptom | Cause | Fix |
 |---|---|---|
 | Keyset disabled, no RuName anywhere | eBay disables production keysets until you implement their account-deletion webhook | `app/api/ebay/deletion/route.ts` — GET returns `sha256(challengeCode + verificationToken + endpointURL)` |
+| `vercel logs` shows nothing but the deletion webhook, and any real failure is already gone | The POST handler logged the **whole notification body**, and eBay fires one for every account closure across the marketplace — about two a minute. At 50 log records that left a **26-minute** retention window, so the 2004 condition failure above could not be read back at all and had to be caught by streaming `vercel logs --follow` while the seller retried. The body also carries that person's `username`, `userId` and `eiasToken`, so this was writing third parties' personal data into the request log — against both the route's own comment and `/privacy` | Log only `notification.notificationId`. Nothing in the body is needed: the endpoint exists to acknowledge, and there is no eBay user data server-side to erase |
 | `25709 Invalid value for header Accept-Language` | Node's `fetch` sends `accept-language: *` by default, which eBay rejects. We never set the header. | `ebayHeaders()` sets it explicitly from the marketplace |
 | `25001 Core Inventory Service internal error` | Transient eBay fault | Retry once after 1.5s |
 | `1100 Insufficient permissions` on taxonomy | The Taxonomy API needs eBay's **base** scope, which the seller token doesn't carry | Mint a client-credentials application token instead of re-prompting the seller |
@@ -213,8 +214,13 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | `25021 The provided condition id is invalid for the selected primary category id` | The granular used grades (`USED_VERY_GOOD` = 4000, `USED_GOOD`, `USED_ACCEPTABLE`) are **media-only**; most categories accept only `USED_EXCELLENT` ("Used"). The model picked one freely, and the condition was set on the inventory item *before* the category was known. | `createListing` now resolves the category first, then `supportedCondition()` checks `get_item_condition_policies` and degrades to the nearest accepted grade |
 | The same 25021 **after** that fix shipped | eBay's filter syntax `categoryIds:{123}` needs the braces **percent-encoded**; unencoded, the lookup 4xx'd and the code silently returned the original condition | Encode as `%7B…%7D`; log lookup failures instead of swallowing them, and degrade media-only grades to `USED_EXCELLENT` when the policy can't be read |
 | `25002 The item specific Type is missing` | Categories require their own item specifics (aspects), which vary per category and so can't be generated up front — the category isn't known until listing time | `requiredAspects()` fetches them, `chooseAspectValues()` (in `lib/aspects.ts`) has the model fill them from the listing text, constrained to eBay's allowed values |
+| `2004 Invalid request`, `reason: Could not serialize field [condition]` | **Every post has been sending a display label, not an enum, since 27 Aug 2026.** A generation carries the condition twice: `ebayDraft.condition` is zod-constrained to a real enum, but the *visible* "Condition" field is free text, and `generate.ts`'s prompt lists eBay's fields without naming the enums (unlike Vinted/Gumtree/Facebook, which have their scales spelled out) — so the model writes `"Used"`. `editedEbayDraft` then overwrote the good enum with that label on every post, edited or not. `pickCondition` masked it: an unrecognised value hit `Object.keys(CONDITION_IDS).find(accepts)` and *usually* resolved to something valid, so it only surfaced when the category's condition-policy lookup failed or returned nothing | `normaliseCondition()` (`lib/ebayConditions.ts`) maps human wording from all four platforms' vocabularies to the enum, called at the top of `supportedCondition()` so both the policy-found and policy-missing branches are covered; unrecognisable text throws a seller-actionable error instead of being forwarded. iOS `editedEbayDraft` now only overrides the enum when the field text resolves to one (`EbayDraft.resolvedCondition`), and the picker reads `EbayDraft.conditionEnums` so the two lists can't drift |
+
+**The old `pickCondition` fallback could list a used item as NEW.** `Object.keys(CONDITION_IDS).find(accepts)` walked the enums in declaration order, and `NEW` is first with id `1000`, which most categories allow — so any condition it couldn't map became `NEW`. A for-parts item would have gone live as brand new. Fallbacks are now bounded to the grade's own family (`CONDITION_FAMILIES`) and step to the nearest grade within it; when nothing in the family fits, the original enum is returned so eBay answers 25021, which already translates into something actionable. Mislabelling condition on a live listing is worse than a failed post, so this deliberately prefers failing.
 
 Two eBay-side setup steps that are done and shouldn't need repeating: the seller account is **enrolled in Business Policies**, and **one policy of each type** (postage, payment, returns) exists.
+
+**The one successful publish (27 Aug) predates the bug above.** `cacb2b6`, which introduced `editedEbayDraft`, landed at 14:20 that same day — so the listing went out just before the clobbering was wired in, and nothing published between then and 9 Oct 2026. Treat "it worked once" as evidence about the pre-`cacb2b6` path only.
 
 ---
 
