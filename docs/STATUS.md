@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 98 tests — sign-in and the eBay allow-list, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 137 tests — sign-in and the eBay allow-list, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
@@ -97,8 +97,33 @@ redirect URI has to be `…/api/auth/google/callback`, matched exactly.
 Two console steps that are **not** code and have to be done by hand: enable the
 **Sign in with Apple** capability on the App ID in the developer portal (without
 it, signing produces a profile lacking the entitlement and the build fails), and
-create the Google OAuth client. 14 tests cover the allow-list and session logic;
-the provider verification itself needs live tokens and is unverified.
+create the Google OAuth client.
+
+**Tested, 39 tests across four files.** The allow-list and session round-trip
+(`lib/auth.test.ts`), real signature verification against a locally generated
+key (`lib/authTokens.test.ts` — wrong audience, wrong issuer, expired, foreign
+signing key, Apple's string-valued `email_verified`, missing email, Hide My
+Email), the token exchange (`lib/googleOAuth.test.ts`), and the routes
+themselves (`app/api/**/route.test.ts`). The route tests assert that an
+unauthorised call reaches **no** eBay work at all — no blob upload, no inventory
+item, no publish — because a gate that merely changes the response would still
+have spent money and created listings. Checked by sabotage: making the empty
+allow-list permit everyone, and making the escape hatch skip the list for signed
+callers, each fail exactly the tests written for them. What remains unverified is
+a real sign-in against Apple and Google, which needs the two console steps above.
+
+Two test-infra traps, both of which cost a round trip:
+
+- **Stubbing `globalThis.fetch` does not intercept a JWKS fetch.** jose's Node
+  build reaches for `node:https` directly, so the stub is ignored and the test
+  silently queries the real `appleid.apple.com` — which fails as
+  `JWKSNoMatchingKey`, looking like a bad key rather than an un-mocked call. Mock
+  `createRemoteJWKSet` to a `createLocalJWKSet` instead.
+- **`vi.resetModules()` breaks `instanceof`.** `createRemoteJWKSet` caches its
+  key set at module scope, so tests must re-import the module to stay
+  independent — but each load defines a *different* `AuthError` class, and
+  `rejects.toThrow(AuthError)` then fails on the correct error. Assert on the
+  message in those tests.
 
 ## Spend is bounded server-side
 
@@ -174,7 +199,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 124 tests (98 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 163 tests (137 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
