@@ -25,6 +25,13 @@ targets:
         # Declares no non-exempt encryption, so App Store Connect stops asking
         # about export compliance on every upload.
         ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: EasyListing/EasyListing.entitlements
+      properties:
+        # Sign in with Apple. The capability also has to be enabled on the App
+        # ID in the developer portal, or signing fails with a provisioning
+        # profile that doesn't carry the entitlement.
+        com.apple.developer.applesignin: [Default]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.samperrone.easylisting

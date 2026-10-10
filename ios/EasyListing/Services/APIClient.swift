@@ -31,15 +31,20 @@ struct APIClient {
         var message: String
         var fix: String?
         var detail: String?
+        /// eBay's own numeric error id, when the failure came from eBay.
         var code: Int?
+        /// The HTTP status, kept separate from `code` so an eBay error id and a
+        /// transport failure can't be mistaken for each other.
+        var httpStatus: Int?
 
         var errorDescription: String? { message }
 
-        init(message: String, fix: String? = nil, detail: String? = nil, code: Int? = nil) {
+        init(message: String, fix: String? = nil, detail: String? = nil, code: Int? = nil, httpStatus: Int? = nil) {
             self.message = message
             self.fix = fix
             self.detail = detail
             self.code = code
+            self.httpStatus = httpStatus
         }
 
         /// Body for a support email — the technical detail a person shouldn't have to read.
@@ -168,6 +173,44 @@ struct APIClient {
         return try JSONDecoder().decode(GenerateResponse.self, from: data)
     }
 
+    // MARK: - Sign-in
+
+    struct SessionResponse: Codable {
+        var sessionToken: String
+        var email: String
+        var canPostToEbay: Bool
+    }
+
+    struct SessionCheck: Codable {
+        var email: String
+        var canPostToEbay: Bool
+    }
+
+    /// Trades an Apple identity token for one of the backend's sessions.
+    static func exchangeIdentityToken(provider: String, idToken: String) async throws -> SessionResponse {
+        var request = URLRequest(url: baseURL.appending(path: "/api/auth/session"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+        request.httpBody = try JSONEncoder().encode(["provider": provider, "idToken": idToken])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response)
+        return try JSONDecoder().decode(SessionResponse.self, from: data)
+    }
+
+    /// Re-checks a stored session, so allow-list changes take effect without
+    /// signing out and in again.
+    static func checkSession(sessionToken: String) async throws -> SessionCheck {
+        var request = URLRequest(url: baseURL.appending(path: "/api/auth/session"))
+        request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response)
+        return try JSONDecoder().decode(SessionCheck.self, from: data)
+    }
+
     struct EbayPostResponse: Codable {
         var listingId: String?
         var offerId: String
@@ -175,7 +218,7 @@ struct APIClient {
     }
 
     /// Publishes (or stages) a listing on eBay through the backend.
-    static func postToEbay(draft: EbayDraft, photos: [Data], accessToken: String, publish: Bool) async throws -> EbayPostResponse {
+    static func postToEbay(draft: EbayDraft, photos: [Data], accessToken: String, publish: Bool, sessionToken: String?) async throws -> EbayPostResponse {
         struct Body: Codable {
             var accessToken: String
             var publish: Bool
@@ -185,6 +228,9 @@ struct APIClient {
         var request = URLRequest(url: baseURL.appending(path: "/api/ebay/post"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // The backend enforces the allow-list on every eBay write, so this is
+        // required, not decorative.
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.timeoutInterval = 180
         let images = encodedImages(from: photos.compactMap { UIImage(data: $0) }, maxDimension: 1400, quality: 0.7)
         request.httpBody = try JSONEncoder().encode(Body(accessToken: accessToken, publish: publish, draft: draft, images: images))
@@ -195,10 +241,11 @@ struct APIClient {
     }
 
     /// Publishes a previously saved eBay draft offer.
-    static func publishEbayOffer(offerId: String, accessToken: String) async throws -> EbayPostResponse {
+    static func publishEbayOffer(offerId: String, accessToken: String, sessionToken: String?) async throws -> EbayPostResponse {
         var request = URLRequest(url: baseURL.appending(path: "/api/ebay/publish"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.timeoutInterval = 120
         request.httpBody = try JSONEncoder().encode(["accessToken": accessToken, "offerId": offerId])
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -230,7 +277,7 @@ struct APIClient {
                 var code: Int?
             }
             if let body = try? JSONDecoder().decode(ErrBody.self, from: data), let message = body.error {
-                throw APIError(message: message, fix: body.fix, detail: body.detail, code: body.code)
+                throw APIError(message: message, fix: body.fix, detail: body.detail, code: body.code, httpStatus: status)
             }
             if status == 413 {
                 throw APIError(

@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 84 tests — error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 98 tests — sign-in and the eBay allow-list, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
@@ -48,6 +48,57 @@ The CDN rate-limits too, just far later — hammered back to back, about a third
 Known housekeeping: job blobs are never deleted. They're small JSON, but they accumulate.
 
 Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
+
+## Sign-in, and who may post to eBay
+
+Added 10 Oct 2026. **Sign in with Apple** (native) and **Google** (the backend's
+web flow, so no Google SDK in the app and the client secret stays server-side —
+same shape as the eBay sign-in). Both end at `/api/auth/session`, which verifies
+the provider's identity token against that provider's published keys and mints
+the app's own session JWT.
+
+Why a session of our own: an Apple identity token lasts about ten minutes and
+Google's about an hour, and neither can be refreshed without putting the
+sign-in sheet back in front of the seller. The session lasts 60 days.
+
+**The allow-list is enforced server-side on every eBay write**, in
+`authoriseEbayPost()`, not merely used to hide a button. Hiding the button is a
+courtesy; the endpoint is public, and publishing spends the seller's own eBay
+account. `/api/ebay/post` and `/api/ebay/publish` both answer **403** with a
+readable message when the caller isn't signed in or isn't on the list.
+
+- `EBAY_POST_ALLOWED_EMAILS` — comma-, space- or newline-separated. Add a tester
+  by appending their address and redeploying. **Unset or empty permits nobody**,
+  deliberately: an unset variable meaning "everyone" would turn one missed env
+  var into an open endpoint.
+- `AUTH_JWT_SECRET` — signs the session. Rotating it signs everyone out, which is
+  the way to revoke every session at once.
+- `EBAY_POST_REQUIRE_AUTH=false` — escape hatch so a build that predates sign-in
+  keeps working. A request with no header passes; a *signed* request is still
+  checked against the list, so the hatch can't be used to bypass it by signing in
+  as anyone. Remove it once every install is updated.
+
+Generation is deliberately **not** gated — it stays open, bounded by the daily
+caps in `lib/usage.ts`. The open `/api/generate` is still the App Store blocker
+recorded in [APP_STORE.md](APP_STORE.md); this work doesn't close it.
+
+**Two traps worth knowing.**
+
+**Apple's "Hide My Email" defeats an email allow-list.** Choosing it hands over
+a `@privaterelay.appleid.com` address, which will never match. The seller has to
+pick "Share My Email" — and if they already chose otherwise, the only fix is
+Settings → Apple Account → Sign in with Apple → remove Easy Listing, then sign
+in again. `requireEmail()` says exactly that rather than failing opaquely.
+
+**The Google client must be a "Web application" client, not an iOS one**, because
+the code is exchanged by the backend with a client secret. Its authorised
+redirect URI has to be `…/api/auth/google/callback`, matched exactly.
+
+Two console steps that are **not** code and have to be done by hand: enable the
+**Sign in with Apple** capability on the App ID in the developer portal (without
+it, signing produces a profile lacking the entitlement and the build fails), and
+create the Google OAuth client. 14 tests cover the allow-list and session logic;
+the provider verification itself needs live tokens and is unverified.
 
 ## Spend is bounded server-side
 
@@ -123,7 +174,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 110 tests (84 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 124 tests (98 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 

@@ -9,6 +9,7 @@ struct PlatformListingView: View {
     let item: Item
 
     @StateObject private var ebayAuth = EbayAuthService.shared
+    @StateObject private var auth = AuthService.shared
     @State private var copiedField: String?
     @State private var editingField: ListingField?
     @State private var showingPublishWarning = false
@@ -112,13 +113,36 @@ struct PlatformListingView: View {
     @ViewBuilder
     private var ebaySection: some View {
         VStack(spacing: 8) {
-            if !ebayAuth.isConnected {
+            // Posting to eBay is limited to allow-listed accounts. Say why the
+            // buttons aren't here rather than just omitting them — a missing
+            // control with no explanation reads as a broken app.
+            if !auth.isSignedIn {
+                Label(
+                    "Sign in with Apple or Google in Settings to post to eBay.",
+                    systemImage: "person.crop.circle.badge.questionmark"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if !auth.canPostToEbay {
+                Label {
+                    Text("Posting to eBay isn't enabled for \(auth.email ?? "this account"). The listing above is still yours to copy across by hand.")
+                } icon: {
+                    Image(systemName: "lock")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if !ebayAuth.isConnected {
                 Text("Connect your eBay account in Settings to post directly from the app.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            if isPosting {
+
+            if !auth.canPostToEbay {
+                EmptyView()
+            } else if isPosting {
                 ProgressView("Talking to eBay…")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
@@ -182,7 +206,8 @@ struct PlatformListingView: View {
                 draft: draft,
                 photos: item.photosData,
                 accessToken: token,
-                publish: publish
+                publish: publish,
+                sessionToken: auth.sessionToken
             )
             listing.ebayOfferId = response.offerId
             if publish {
@@ -203,7 +228,11 @@ struct PlatformListingView: View {
         defer { isPosting = false }
         do {
             let token = try await ebayAuth.validAccessToken()
-            let response = try await APIClient.publishEbayOffer(offerId: offerId, accessToken: token)
+            let response = try await APIClient.publishEbayOffer(
+                offerId: offerId,
+                accessToken: token,
+                sessionToken: auth.sessionToken
+            )
             listing.status = .posted
             listing.postedAt = .now
             listing.postedURL = response.viewURL

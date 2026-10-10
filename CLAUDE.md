@@ -54,6 +54,7 @@ A SwiftUI iOS app plus a Next.js backend on Vercel. The split exists because API
 
 ## Constraints that will bite
 
+- **Posting to eBay is allow-listed, and the check is server-side.** `authoriseEbayPost()` (`backend/lib/auth.ts`) gates `/api/ebay/post` and `/api/ebay/publish` on a verified Apple/Google session whose email is in `EBAY_POST_ALLOWED_EMAILS`. Hiding the button in the app is a courtesy, not the control — never move the check there. An unset allow-list permits nobody on purpose.
 - **Only eBay gets API posting.** Vinted, Gumtree and FB Marketplace have no public seller API; automating them breaks their terms. The copy-paste flow for those is a deliberate design decision, not an unfinished feature.
 - **Node's `fetch` sends `accept-language: *`**, which eBay rejects with error 25709. Any new eBay call must go through `ebayHeaders()`.
 - **The eBay condition exists twice, and only one form is postable.** The visible "Condition" field holds eBay's human label ("Used"); `ebayDraft.condition` holds the enum its API requires (`USED_EXCELLENT`). `editedEbayDraft` (iOS) must override the enum *only* when the field text resolves to one, and `supportedCondition()` runs everything through `normaliseCondition()` first. Posting a label gets eBay 2004 "Could not serialize field [condition]", which broke every publish for six weeks. A condition fallback must also never cross from a used grade to `NEW`.
