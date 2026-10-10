@@ -338,7 +338,7 @@ Two eBay-side setup steps that are done and shouldn't need repeating: the seller
 
 ✅ **Working, verified installed.** Enrolled in the Apple Developer Program, app created in App Store Connect (`com.samperrone.easylisting`), API key generated, and the app installed on the iPhone from TestFlight. Replaces the 7-day free-signing expiry with **90-day** over-the-air builds.
 
-**Build 11 exported 9 Oct 2026** — the eBay condition fix (`15b4039`). Archived and exported cleanly; **upload not yet done**, because `ASC_ISSUER_ID` wasn't available in the session that built it. The signed `.ipa` is at `ios/build/export/EasyListing.ipa`; finish with `xcrun altool --upload-app -f ios/build/export/EasyListing.ipa -t ios --apiKey 5LGP386KP6 --apiIssuer <issuer-uuid>`. Note the backend half of that fix is already live and reaches existing installs without this build. **Build 8 uploaded 29 Sep 2026** (`5e5aa0e7-0950-488c-b67c-8dbe8461efcf`) — plum icon. **Build 7** (`d7683c8a-a9be-4911-beff-fd5c4264ca0a`) — sends `x-install-id`, so each install counts against its own daily allowance rather than the shared bucket; attach build 8 or later to the App Store version, never 6 or earlier. **Build 6** (`c1bf23ed-2ffd-4300-b8cc-0961fc31c9ec`) — burst camera capture, camera-roll saving, and a guard against one tap creating two items. **Build 5** (`ba9a5ac9-8831-4a0e-a72c-c4c8ddcdf468`) — fixes build 4's placeholder title, which doubled as a progress message and so stuck at "Writing listings…" on any item whose job failed. **Build 4** (`fd50b368-4a7d-4b74-8c43-a125459abd9d`) — background generation, save-before-generate with Retry, and local notifications. **Build 3** (`cf365bc6-666a-4f8c-9387-af1f6408508d`) — the coral icon and the "Where to sell" ranking card. **Build 2** (25 Sep, `e5cae045-19c9-454f-b850-992cf73b0b03`) was byte-identical to build 1: no iOS file changed between them, so it shipped nothing. Check `git diff <last-build>..HEAD -- ios/` before uploading; backend changes reach existing installs on deploy and need no build at all.
+**Build 11 uploaded 10 Oct 2026**, verified `VALID` through the API rather than trusted from altool's output. Carries the eBay condition fix *and* Apple/Google sign-in with the eBay allow-list. **Builds 9 and 10 are both `VALID` too** — the two uploads on 29 Sep that reported failure did register after all, which is why export numbered this one 11. **Build 8 uploaded 29 Sep 2026** (`5e5aa0e7-0950-488c-b67c-8dbe8461efcf`) — plum icon. **Build 7** (`d7683c8a-a9be-4911-beff-fd5c4264ca0a`) — sends `x-install-id`, so each install counts against its own daily allowance rather than the shared bucket; attach build 8 or later to the App Store version, never 6 or earlier. **Build 6** (`c1bf23ed-2ffd-4300-b8cc-0961fc31c9ec`) — burst camera capture, camera-roll saving, and a guard against one tap creating two items. **Build 5** (`ba9a5ac9-8831-4a0e-a72c-c4c8ddcdf468`) — fixes build 4's placeholder title, which doubled as a progress message and so stuck at "Writing listings…" on any item whose job failed. **Build 4** (`fd50b368-4a7d-4b74-8c43-a125459abd9d`) — background generation, save-before-generate with Retry, and local notifications. **Build 3** (`cf365bc6-666a-4f8c-9387-af1f6408508d`) — the coral icon and the "Where to sell" ranking card. **Build 2** (25 Sep, `e5cae045-19c9-454f-b850-992cf73b0b03`) was byte-identical to build 1: no iOS file changed between them, so it shipped nothing. Check `git diff <last-build>..HEAD -- ios/` before uploading; backend changes reach existing installs on deploy and need no build at all.
 
 Note for testing build 3: the recommendation card only appears on items generated **after** the `marketFit` backend change, because the ranking is stored per item at generation time. Existing history shows the old behaviour.
 
@@ -348,15 +348,21 @@ To ship a new build: bump `CURRENT_PROJECT_VERSION` in `ios/project.yml`, then `
 
 **`UPLOAD SUCCEEDED with no errors` is not proof the build arrived.** On 29 Sep 2026 two consecutive build 9 uploads printed that line and exited 0, while the log also carried `CHANGE UPLOAD STATE TO COMPLETE (…): received status code 500` from Apple — and the build never appeared in App Store Connect at all. Archive and export were clean both times; it was an Apple-side outage.
 
-So verify against the API rather than the upload output:
+So verify against the API rather than the upload output — `ios/asc_builds.py`
+does exactly that, listing each registered build and its processing state:
 
-    python - <<'EOF'   # needs pyjwt + cryptography
-    # JWT with the ASC key, then GET /v1/builds?filter[app]=<id>&sort=-uploadedDate
-    EOF
+    python3 -m venv /tmp/ascvenv && /tmp/ascvenv/bin/pip install pyjwt cryptography
+    /tmp/ascvenv/bin/python ios/asc_builds.py <issuer-id>
 
-or just watch for the build in TestFlight. If `grep -c "internal server error"` on the release log is non-zero, treat the upload as failed no matter what the last line says, and retry later. **The build number does not stay free, though** — this line used to claim it did. On 9 Oct 2026 an export chose **11**, and Xcode picks that by asking App Store Connect for the highest existing build and adding one, so 9 and 10 were both registered despite those two uploads reporting failure.
+A build in state `VALID` has finished processing and is in TestFlight;
+`PROCESSING` means wait. A build that isn't listed did not arrive, whatever
+altool said. (The venv is because pyjwt and cryptography aren't project
+dependencies and the system python has neither.) If `grep -c "internal server error"` on the release log is non-zero, treat the upload as failed no matter what the last line says, and retry later. **The build number does not stay free, though** — this line used to claim it did. On 9 Oct 2026 an export chose **11**, and Xcode picks that by asking App Store Connect for the highest existing build and adding one, so 9 and 10 were both registered despite those two uploads reporting failure.
 
-There are **two** keys in that directory. `5LGP386KP6` is the one that works — `WTZ5R5WGCQ` is stale or for something else. The issuer ID is a UUID that appears nowhere on disk, so it has to come from App Store Connect → Users and Access → Integrations, or from wherever you've stored it. Neither belongs in the repo.
+There are **two** keys in that directory. `5LGP386KP6` is the one that works — `WTZ5R5WGCQ` is stale or for something else. The issuer ID is a UUID that appears nowhere on disk — confirmed by searching the shell profiles, the repo and `~/.appstoreconnect` on 10 Oct 2026. It comes from **App Store Connect → Users and Access → Integrations → Team Keys**, where it is the "Issuer ID" row *above* the table of keys. Neither it nor the key belongs in the repo; keep both in your shell profile instead, so `release.sh` needs no arguments:
+
+    export ASC_KEY_ID=5LGP386KP6
+    export ASC_ISSUER_ID=<the-uuid>
 
 `release.sh` takes about 2 minutes end to end (archive ~1m40s, export ~2s, upload ~5s), then 5–15 minutes of processing before the build appears in TestFlight.
 
