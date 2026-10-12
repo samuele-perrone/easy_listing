@@ -201,20 +201,40 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
 
 ### App Review notes
 
+Paste verbatim. Covers Apple's points 2–5 from the 30 Sep rejection, and
+pre-empts the account-deletion question in point 1.
+
     Sign in with Apple or Google on first launch — any account works, and it grants
-    10 free listings a month. Nothing else is needed; there is no demo account to
-    request. "Hide My Email" is fine.
+    10 free listings a month. There is no demo account to request, and "Hide My
+    Email" works fine.
 
-    Then tap +, add photos of any object, and tap Generate listings to see the full
-    flow. Generation takes 20-90 seconds and runs as a background job, so the item
-    appears in the list immediately and fills in when it is ready.
+    Then tap +, add photos of any object, and tap Generate listings. Generation
+    takes 20-90 seconds and runs as a background job, so the item appears in the
+    list immediately and fills in when it is ready.
 
-    Connecting an eBay account is optional and only needed for posting directly to eBay.
-    All other marketplaces use a copy-to-clipboard flow because they have no public
-    seller API.
+    Connecting an eBay account is optional and only needed for posting directly to
+    eBay. Vinted, Gumtree and Facebook Marketplace use a copy-to-clipboard flow
+    because they have no public seller API.
 
-    Photos are sent to Google's Gemini API to generate the listing text. This is described
-    in the privacy policy. No account is created and no personal data is collected.
+    External services: Google Gemini and Anthropic Claude generate the listing text
+    from the photos; Vercel provides hosting and temporary image storage; the eBay
+    Sell API is used only for optional posting. This is described in the privacy
+    policy.
+
+    The app stores no password and creates no profile of its own. The only thing
+    kept server-side is a count of listings generated, against the opaque account
+    id the sign-in provider returns — never the email. Signing out in Settings
+    removes the session from the device.
+
+    The app behaves identically in all regions. Availability is the United Kingdom
+    only, because of the non-trader declaration.
+
+**Known risk: account deletion.** Apple requires a deletion path in apps that
+support account *creation*. This app creates no profile — sign-in is delegated,
+no password is stored, and the only server-side data is a generation count
+against an opaque provider id. That is stated above rather than hidden. If a
+reviewer still asks for it, the work is small: a "Delete my data" action that
+removes the account's usage markers and signs out.
 
 ### Screenshots to capture
 
