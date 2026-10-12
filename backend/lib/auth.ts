@@ -169,6 +169,26 @@ export function requireAuthForEbay(): boolean {
   return process.env.EBAY_POST_REQUIRE_AUTH !== 'false';
 }
 
+/**
+ * Refuses a request, saying why in the log.
+ *
+ * A 403 is not a fault, so it doesn't belong in the error log — but logging
+ * *nothing* was worse: on 12 Oct 2026 a seller hit refusals during a rollout
+ * and there was no way to tell which of the three reasons had fired, because
+ * this path returned silently. One line per refusal, naming the reason and the
+ * account, and never the token.
+ */
+function refuse(gate: 'generation' | 'ebay', reason: string, who: string): never {
+  console.log(`refused ${gate}: ${reason} (${who})`);
+  throw new AuthError(REFUSALS[reason] ?? 'Sign in to use Easy Listing.');
+}
+
+const REFUSALS: Record<string, string> = {
+  'no session': 'Sign in with Apple or Google to use Easy Listing.',
+  'no session (ebay)': 'Sign in with Apple or Google to post to eBay.',
+  'bad session': 'Your sign-in has expired. Sign in again in Settings.',
+};
+
 export interface Authorisation {
   email: string | null;
   allowed: boolean;
@@ -201,7 +221,7 @@ export async function authoriseGeneration(request: Request): Promise<Authorisati
 
   if (!token) {
     if (!requireAuthForGeneration()) return { email: null, allowed: true };
-    throw new AuthError('Sign in with Apple or Google to use Easy Listing.');
+    refuse('generation', 'no session', 'no Authorization header');
   }
 
   let user: SignedInUser;
@@ -209,10 +229,11 @@ export async function authoriseGeneration(request: Request): Promise<Authorisati
     user = await verifySession(token);
   } catch (error) {
     if (error instanceof AuthError) throw error;
-    throw new AuthError('Your sign-in has expired. Sign in again in Settings.');
+    refuse('generation', 'bad session', error instanceof Error ? error.message : 'unverifiable');
   }
 
   if (!isAllowed(user.email)) {
+    console.log(`refused generation: not on the approved list (${user.email})`);
     throw new AuthError(
       `Easy Listing isn’t enabled for ${user.email}. Ask Sam to add it, or sign in with a different account.`,
     );
@@ -230,7 +251,7 @@ export async function authoriseEbayPost(request: Request): Promise<Authorisation
 
   if (!token) {
     if (!requireAuthForEbay()) return { email: null, allowed: true };
-    throw new AuthError('Sign in with Apple or Google to post to eBay.');
+    refuse('ebay', 'no session (ebay)', 'no Authorization header');
   }
 
   let user: SignedInUser;
@@ -238,10 +259,11 @@ export async function authoriseEbayPost(request: Request): Promise<Authorisation
     user = await verifySession(token);
   } catch (error) {
     if (error instanceof AuthError) throw error;
-    throw new AuthError('Your sign-in has expired. Sign in again in Settings.');
+    refuse('ebay', 'bad session', error instanceof Error ? error.message : 'unverifiable');
   }
 
   if (!isAllowedToPost(user.email)) {
+    console.log(`refused ebay: not on the approved list (${user.email})`);
     throw new AuthError(
       `${user.email} isn’t on the list of accounts allowed to post to eBay. ` +
         `Ask Sam to add it, or sign in with a different account.`,

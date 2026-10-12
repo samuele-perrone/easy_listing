@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AuthError,
   allowedEmails,
@@ -126,5 +126,29 @@ describe('authoriseEbayPost', () => {
 
     const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
     await expect(authoriseEbayPost(requestWith(token))).rejects.toThrow(/isn’t on the list/);
+  });
+});
+
+describe('refusals are logged', () => {
+  // A 403 isn't a fault, so it stays out of console.error — but it has to leave
+  // *some* trace. Returning silently made a real rollout failure undiagnosable.
+  it('names the reason, and never the token', async () => {
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, 'log').mockImplementation((...a) => { logged.push(a.join(' ')); });
+    try {
+      process.env.EBAY_POST_ALLOWED_EMAILS = 'samuele.perrone@gmail.com';
+      const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
+
+      await expect(authoriseEbayPost(requestWith())).rejects.toThrow();
+      await expect(authoriseEbayPost(requestWith(token))).rejects.toThrow();
+      await expect(authoriseEbayPost(requestWith('not-a-jwt'))).rejects.toThrow();
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(logged.some((l) => l.includes('no session'))).toBe(true);
+    expect(logged.some((l) => l.includes('not on the approved list') && l.includes('stranger@example.com'))).toBe(true);
+    expect(logged.some((l) => l.includes('bad session'))).toBe(true);
+    expect(logged.join('\n')).not.toContain('not-a-jwt');
   });
 });
