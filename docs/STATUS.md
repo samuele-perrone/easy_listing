@@ -51,7 +51,9 @@ Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` 
 
 ## Sign-in, and who may post to eBay
 
-Added 10 Oct 2026. **Sign in with Apple** (native) and **Google** (the backend's
+Added 10 Oct 2026, **and verified working on 12 Oct** — signing in through the
+app returns a session and the allow-listed account shows as able to post.
+**Sign in with Apple** (native) and **Google** (the backend's
 web flow, so no Google SDK in the app and the client secret stays server-side —
 same shape as the eBay sign-in). Both end at `/api/auth/session`, which verifies
 the provider's identity token against that provider's published keys and mints
@@ -76,7 +78,10 @@ readable message when the caller isn't signed in or isn't on the list.
 - `EBAY_POST_REQUIRE_AUTH=false` — escape hatch so a build that predates sign-in
   keeps working. A request with no header passes; a *signed* request is still
   checked against the list, so the hatch can't be used to bypass it by signing in
-  as anyone. Remove it once every install is updated.
+  as anyone. **Set on 9 Oct and removed on 12 Oct 2026**, once build 11 was
+  installed and sign-in confirmed working. The gate is now fully enforced: an
+  unauthenticated call to `/api/ebay/post` or `/api/ebay/publish` is refused.
+  Builds 10 and earlier can therefore no longer post to eBay at all, by design.
 
 Generation is deliberately **not** gated — it stays open, bounded by the daily
 caps in `lib/usage.ts`. The open `/api/generate` is still the App Store blocker
