@@ -33,7 +33,11 @@ final class GenerationCoordinator {
         try? context.save()
 
         do {
-            let jobId = try await APIClient.startGeneration(photos: photos, notes: item.sellerNotes)
+            let jobId = try await APIClient.startGeneration(
+                photos: photos,
+                notes: item.sellerNotes,
+                sessionToken: AuthService.shared.sessionToken
+            )
             item.jobId = jobId
             try? context.save()
             await watch(item: item, context: context)

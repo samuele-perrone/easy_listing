@@ -120,16 +120,35 @@ export async function verifySession(token: string): Promise<SignedInUser> {
 }
 
 /**
- * Emails permitted to post to eBay, from `EBAY_POST_ALLOWED_EMAILS`.
- * Comma-, space- or newline-separated so it can be pasted in any shape.
+ * Emails permitted to use the app at all — generating listings and posting to
+ * eBay both check this one list. Comma-, space- or newline-separated so it can
+ * be pasted in any shape.
+ *
+ * `ALLOWED_EMAILS` is the name to use. `EBAY_POST_ALLOWED_EMAILS` is read as a
+ * fallback because it was the original name, set before the list also governed
+ * generation; it can go once `ALLOWED_EMAILS` is set everywhere.
+ *
+ * One list rather than two deliberately. Generation is the part that spends
+ * money (the AI key is ours), while an eBay post spends the seller's *own* eBay
+ * account through their own OAuth token — so if anything the generation side
+ * wants the tighter control, and separate lists would invite getting that
+ * backwards.
  */
 export function allowedEmails(): string[] {
-  return (process.env.EBAY_POST_ALLOWED_EMAILS ?? '')
+  const raw = process.env.ALLOWED_EMAILS ?? process.env.EBAY_POST_ALLOWED_EMAILS ?? '';
+  return raw
     .split(/[,\s]+/)
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean);
 }
 
+export function isAllowed(email: string): boolean {
+  const list = allowedEmails();
+  if (list.length === 0) return false;
+  return list.includes(email.trim().toLowerCase());
+}
+
+/** @deprecated Same list as `isAllowed`; kept so existing call sites read clearly. */
 export function isAllowedToPost(email: string): boolean {
   const list = allowedEmails();
   // An empty list permits nobody. The alternative — an unset variable meaning
@@ -153,6 +172,52 @@ export function requireAuthForEbay(): boolean {
 export interface Authorisation {
   email: string | null;
   allowed: boolean;
+}
+
+/**
+ * Whether generating a listing demands a signed-in, allow-listed caller.
+ *
+ * Same shape of escape hatch as `requireAuthForEbay`, and for the same reason:
+ * a build already on a phone predates sign-in on this endpoint and would stop
+ * generating the moment it deploys. Set `GENERATE_REQUIRE_AUTH=false` until the
+ * new build is installed, then remove it.
+ */
+export function requireAuthForGeneration(): boolean {
+  return process.env.GENERATE_REQUIRE_AUTH !== 'false';
+}
+
+/**
+ * Resolves the caller of a generation, or throws something the app can show.
+ *
+ * This is what actually bounds spend: the daily caps in `lib/usage.ts` limit how
+ * much an identified caller may use, but the install id they key off is
+ * self-asserted, so without this anyone who found the endpoint could mint a new
+ * one per request. A verified, allow-listed email is the part that can't be
+ * invented.
+ */
+export async function authoriseGeneration(request: Request): Promise<Authorisation> {
+  const header = request.headers.get('authorization') ?? '';
+  const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
+
+  if (!token) {
+    if (!requireAuthForGeneration()) return { email: null, allowed: true };
+    throw new AuthError('Sign in with Apple or Google to use Easy Listing.');
+  }
+
+  let user: SignedInUser;
+  try {
+    user = await verifySession(token);
+  } catch (error) {
+    if (error instanceof AuthError) throw error;
+    throw new AuthError('Your sign-in has expired. Sign in again in Settings.');
+  }
+
+  if (!isAllowed(user.email)) {
+    throw new AuthError(
+      `Easy Listing isn’t enabled for ${user.email}. Ask Sam to add it, or sign in with a different account.`,
+    );
+  }
+  return { email: user.email, allowed: true };
 }
 
 /**

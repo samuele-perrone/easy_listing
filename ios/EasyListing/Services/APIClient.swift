@@ -128,7 +128,7 @@ struct APIClient {
     /// long as the provider takes, and connections past about a minute were
     /// being cut — "The network connection was lost", with the photos gone too.
     /// This starts the work and lets the phone check back.
-    static func startGeneration(photos: [UIImage], notes: String) async throws -> String {
+    static func startGeneration(photos: [UIImage], notes: String, sessionToken: String?) async throws -> String {
         let images = await encodedImagesOffMain(from: photos, maxDimension: 1100, quality: 0.6)
         guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
 
@@ -136,6 +136,9 @@ struct APIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(installId, forHTTPHeaderField: "x-install-id")
+        // Required: the backend only generates for a verified, allow-listed
+        // account, because generation is what can reach a paid model.
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.timeoutInterval = 60
         request.httpBody = try JSONEncoder().encode(["images": images, "notes": [notes]])
 
@@ -157,7 +160,7 @@ struct APIClient {
     }
 
     /// Sends the item photos (+ optional notes) and gets back per-platform listing fields.
-    static func generateListings(photos: [UIImage], notes: String) async throws -> GenerateResponse {
+    static func generateListings(photos: [UIImage], notes: String, sessionToken: String?) async throws -> GenerateResponse {
         let images = await encodedImagesOffMain(from: photos, maxDimension: 1100, quality: 0.6)
         guard !images.isEmpty else { throw APIError(message: "No usable photos.") }
 
@@ -165,6 +168,7 @@ struct APIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(installId, forHTTPHeaderField: "x-install-id")
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.timeoutInterval = 120
         request.httpBody = try JSONEncoder().encode(["images": images, "notes": [notes]])
 

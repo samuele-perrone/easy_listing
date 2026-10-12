@@ -4,6 +4,7 @@ import { isExhaustedForTheDay } from '@/lib/backoff';
 import { genericFailureBody, quotaExhaustedBody } from '@/lib/generateErrors';
 import { newJobId, writeJob } from '@/lib/jobs';
 import { checkUsage, normaliseInstallId, recordUsage } from '@/lib/usage';
+import { AuthError, authoriseGeneration } from '@/lib/auth';
 
 export const maxDuration = 300;
 
@@ -18,6 +19,17 @@ export const maxDuration = 300;
  * rather than a failed request.
  */
 export async function POST(request: Request) {
+  // Before anything else: generation can reach a paid model, so the caller has
+  // to be a verified, allow-listed account first.
+  try {
+    await authoriseGeneration(request);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
+    throw error;
+  }
+
   const { images, notes } = (await request.json()) as { images: string[]; notes?: string[] };
   if (!images?.length) {
     return Response.json({ error: 'No images provided.' }, { status: 400 });

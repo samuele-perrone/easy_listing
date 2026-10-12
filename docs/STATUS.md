@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 137 tests — sign-in and the eBay allow-list, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 144 tests — sign-in and the approved-account gate, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
@@ -49,7 +49,7 @@ Known housekeeping: job blobs are never deleted. They're small JSON, but they ac
 
 Verified live end to end on 28 Sep: start → 202 with a job id, four `pending` polls, then a terminal state carrying the seller-facing `error`/`fix`. The terminal state was a *failure*, because the free tier was exhausted — so the plumbing is proven and a successful payload through the job path still hasn't been seen.
 
-## Sign-in, and who may post to eBay
+## Sign-in, and who may use the app
 
 Added 10 Oct 2026, **and verified working on 12 Oct** — signing in through the
 app returns a session, the allow-listed account shows as able to post, and two
@@ -71,10 +71,15 @@ courtesy; the endpoint is public, and publishing spends the seller's own eBay
 account. `/api/ebay/post` and `/api/ebay/publish` both answer **403** with a
 readable message when the caller isn't signed in or isn't on the list.
 
-- `EBAY_POST_ALLOWED_EMAILS` — comma-, space- or newline-separated. Add a tester
-  by appending their address and redeploying. **Unset or empty permits nobody**,
+- `ALLOWED_EMAILS` — comma-, space- or newline-separated. Add a tester by
+  appending their address and redeploying. **Unset or empty permits nobody**,
   deliberately: an unset variable meaning "everyone" would turn one missed env
-  var into an open endpoint.
+  var into an open endpoint. `EBAY_POST_ALLOWED_EMAILS` is read as a fallback
+  because it was the original name, from when the list only governed eBay; both
+  are set in production and the old one can go once nothing depends on it.
+- `GENERATE_REQUIRE_AUTH=false` — the same escape hatch as the eBay one, for the
+  generation endpoints. **Currently set**, so build 11 keeps generating until
+  build 12 is installed. Remove it then.
 - `AUTH_JWT_SECRET` — signs the session. Rotating it signs everyone out, which is
   the way to revoke every session at once.
 - `EBAY_POST_REQUIRE_AUTH=false` — escape hatch so a build that predates sign-in
@@ -85,9 +90,24 @@ readable message when the caller isn't signed in or isn't on the list.
   unauthenticated call to `/api/ebay/post` or `/api/ebay/publish` is refused.
   Builds 10 and earlier can therefore no longer post to eBay at all, by design.
 
-Generation is deliberately **not** gated — it stays open, bounded by the daily
-caps in `lib/usage.ts`. The open `/api/generate` is still the App Store blocker
-recorded in [APP_STORE.md](APP_STORE.md); this work doesn't close it.
+**Generation is gated too, as of 12 Oct 2026.** `/api/generate` and
+`/api/generate/start` both require a verified, approved session, and the app
+shows `SignInGateView` instead of the item list until there is one. That closes
+the open-`/api/generate` App Store blocker recorded in
+[APP_STORE.md](APP_STORE.md).
+
+This matters more than the eBay gate: the daily caps in `lib/usage.ts` bound how
+much an *identified* caller may spend, but the install id they key off is
+self-asserted, so anyone who found the endpoint could mint a fresh one per
+request. A verified email is the part that can't be invented. Note the asymmetry
+— generation spends **our** AI key, whereas an eBay post spends the seller's own
+eBay account through their own OAuth token, which is why one list governs both
+and the tighter concern is generation.
+
+The app gate is a courtesy, not the control: the backend refuses either way, and
+`SignInGateView` exists so the refusal arrives as a sign-in prompt rather than as
+an error on the seller's first photo. The screenshot UI test bypasses it, since
+it runs on seeded local data with no network call.
 
 **Two traps worth knowing.**
 
@@ -206,7 +226,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 163 tests (137 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 170 tests (144 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
