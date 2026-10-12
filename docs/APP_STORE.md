@@ -81,7 +81,7 @@ Price: **Free**. Availability: **United Kingdom only** — see the trader decisi
 
 ### 3. Build
 
-Attach **build 8** to version 1.0 (Build section → +). Anything from build 7 onwards sends `x-install-id`, so it counts against a per-install allowance instead of the shared bucket; build 8 adds the plum icon. Don't attach build 6 or earlier.
+Attach **build 8** to version 1.0 (Build section → +). Anything from build 7 onwards sends `x-install-id`, so it counts against a per-install allowance instead of the shared bucket; build 8 added the plum icon, replaced by the barcode icon in build 13. Don't attach build 6 or earlier.
 
 ### 4. App Review Information
 

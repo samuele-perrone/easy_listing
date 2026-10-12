@@ -7,3 +7,8 @@ ios/build/
 ios/DerivedData/
 .vercel
 .env*
+
+# Intermediates from the app-icon pipeline (see docs/STATUS.md); icon.svg is the source
+ios/icon.png
+ios/icon.jpg
+ios/icon.svg.png

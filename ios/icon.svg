@@ -1,11 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0" stop-color="#C084FC"/><stop offset="0.55" stop-color="#9333EA"/><stop offset="1" stop-color="#3B0764"/></linearGradient></defs>
-<rect width="1024" height="1024" fill="url(#g)"/>
-<g transform="translate(512,500)">
-    <path d="M -300 0 L -78 -218 L 238 -218 A 64 64 0 0 1 302 -154 L 302 154 A 64 64 0 0 1 238 218 L -78 218 Z" fill="#ffffff"/>
-    <circle cx="-150" cy="0" r="66" fill="none" stroke="#9333EA" stroke-width="30"/>
-    <circle cx="-150" cy="0" r="19" fill="#9333EA"/>
-    <rect x="-20" y="-110" width="238" height="52" rx="26" fill="#9333EA"/>
-    <rect x="-20" y="-26" width="182" height="52" rx="26" fill="#9333EA"/>
-    <rect x="-20" y="58" width="120" height="52" rx="26" fill="#9333EA"/></g></svg>
+<!-- Easy Listing app icon: a barcode of five bold bars on cream, the middle one
+     in clay.
+     Five thick bars rather than the realistic seven-plus of a real barcode: at
+     29px (Spotlight, Settings) alternating thin bars merge into a striped
+     smudge, and that size is where the icon spends most of its life. The accent
+     bar is what stops it reading as a generic utility mark.
+     Flat, no gradient - the previous plum-to-near-black fade went muddy small.
+     Regenerate the appiconset after editing (see README / docs/STATUS.md): the
+     JPEG hop in that pipeline is what strips the alpha channel the App Store
+     rejects. Check with `sips -g hasAlpha`; it must read `no`. -->
+<rect width="1024" height="1024" fill="#F7F3EA"/>
+<rect x="216" y="232" width="88" height="560" rx="26" fill="#1C1B22"/>
+<rect x="342" y="232" width="88" height="560" rx="26" fill="#1C1B22"/>
+<rect x="468" y="232" width="88" height="560" rx="26" fill="#C2551F"/>
+<rect x="594" y="232" width="88" height="560" rx="26" fill="#1C1B22"/>
+<rect x="720" y="232" width="88" height="560" rx="26" fill="#1C1B22"/>
+</svg>
