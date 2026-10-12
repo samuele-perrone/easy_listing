@@ -181,7 +181,7 @@ Alternatives: `Sell your stuff, faster` · `List once, sell anywhere` · `Snap i
     KEEPS TRACK
     Your items stay in the app with their photos and status, so you know what you've listed, where, and what's still waiting.
 
-    Easy Listing has no account and no tracking. Your eBay connection is stored on your device, never on a server.
+    Easy Listing doesn't track you. Sign in with Apple or Google and you get 10 free listings a month — no password is stored and no profile is built. Your eBay connection stays on your device, never on a server.
 
 ### Keywords (100 characters, comma-separated, no spaces)
 
