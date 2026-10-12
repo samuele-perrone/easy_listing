@@ -83,7 +83,7 @@ Price: **Free**. Availability: **United Kingdom only** — see the trader decisi
 
 ### 3. Build
 
-Attach **build 8** to version 1.0 (Build section → +). Anything from build 7 onwards sends `x-install-id`, so it counts against a per-install allowance instead of the shared bucket; build 8 added the plum icon, replaced by the barcode icon in build 13. Don't attach build 6 or earlier.
+Attach **build 14 or later** to version 1.0 (Build section → +). Builds 12 and 13 are superseded by the access-model change and show no eBay buttons; builds 10 and earlier predate sign-in entirely and cannot generate at all against the current backend. The barcode icon arrived in build 13.
 
 ### 4. App Review Information
 
