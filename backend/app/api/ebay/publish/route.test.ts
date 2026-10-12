@@ -54,15 +54,8 @@ describe('POST /api/ebay/publish', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('refuses a seller who is not allow-listed without calling eBay', async () => {
-    const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
-    const response = await POST(publishRequest(token));
-    expect(response.status).toBe(403);
-    expect(mocks.fetch).not.toHaveBeenCalled();
-  });
-
-  it('publishes for an allow-listed seller', async () => {
-    const token = await mintSession({ email: 'samuele.perrone@icloud.com', provider: 'apple' });
+  it('publishes for any signed-in seller', async () => {
+    const token = await mintSession({ email: 'stranger@example.com', provider: 'google', sub: 'g-9' });
     const response = await POST(publishRequest(token));
 
     expect(response.status).toBe(200);

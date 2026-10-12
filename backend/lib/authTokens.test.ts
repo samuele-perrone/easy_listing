@@ -52,14 +52,16 @@ async function loadAuth() {
   return import('./auth');
 }
 
+// The verifiers return { email, sub }; these tests are about the email, with
+// `sub` covered separately below.
 async function verifyApple(token: string): Promise<string> {
   const auth = await loadAuth();
-  return auth.verifyAppleIdentityToken(token);
+  return (await auth.verifyAppleIdentityToken(token)).email;
 }
 
 async function verifyGoogle(token: string): Promise<string> {
   const auth = await loadAuth();
-  return auth.verifyGoogleIdToken(token);
+  return (await auth.verifyGoogleIdToken(token)).email;
 }
 
 const APPLE_AUD = 'com.samperrone.easylisting';
@@ -199,16 +201,28 @@ describe('verifyGoogleIdToken', () => {
 });
 
 describe('Apple’s Hide My Email', () => {
-  it('verifies, but does not reach the allow-list', async () => {
-    // Choosing "Hide My Email" yields a relay address. It is a genuine verified
-    // email so verification passes — it simply can never match an allow-list
-    // entry, which is why the sign-in UI warns about it.
+  it('is a non-event, because the account is keyed on sub', async () => {
+    // Choosing "Hide My Email" yields a relay address. Nothing depends on the
+    // address: usage is charged to the provider's stable id, so a relayed
+    // seller is indistinguishable from any other. Keying on email instead
+    // would have stranded them with no fix available to anyone.
     const relay = 'abc123def@privaterelay.appleid.com';
     const token = await signToken({ email: relay });
-    await expect(verifyApple(token)).resolves.toBe(relay);
 
-    process.env.EBAY_POST_ALLOWED_EMAILS = 'samuele.perrone@gmail.com';
-    const { isAllowedToPost } = await loadAuth();
-    expect(isAllowedToPost(relay)).toBe(false);
+    const auth = await loadAuth();
+    const identity = await auth.verifyAppleIdentityToken(token);
+    expect(identity.email).toBe(relay);
+    expect(identity.sub).toBe('provider-user-id');
+
+    const relayed = auth.accountKeyFor({ email: relay, provider: 'apple', sub: 'provider-user-id' });
+    const plain = auth.accountKeyFor({ email: 'sam@example.com', provider: 'apple', sub: 'provider-user-id' });
+    expect(relayed).toBe(plain);
+  });
+
+  it('falls back to an email-derived key for sessions minted before sub', async () => {
+    const auth = await loadAuth();
+    const legacy = auth.accountKeyFor({ email: 'sam@example.com', provider: 'apple' });
+    expect(legacy).toContain('email');
+    expect(legacy).not.toBe(auth.accountKeyFor({ email: 'other@example.com', provider: 'apple' }));
   });
 });

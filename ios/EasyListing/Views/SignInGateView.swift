@@ -1,13 +1,17 @@
 import SwiftUI
 import AuthenticationServices
 
-/// Stands in front of the app until someone is signed in with an approved
-/// account.
+/// Stands in front of the app until someone is signed in.
 ///
 /// This is a courtesy, not the control: the backend refuses to generate or to
 /// post for a caller it can't verify, so bypassing this screen would get you an
 /// app that can't do anything. It exists so the refusal arrives as a sign-in
 /// prompt rather than as an error on the first photo.
+///
+/// Deliberately has no "your account isn't approved" state: anyone who signs in
+/// can use the app. A screen that tells someone to go and ask a stranger for
+/// access is a dead end, and that is what it looked like to anyone who wasn't
+/// the author.
 struct SignInGateView: View {
     @StateObject private var auth = AuthService.shared
     @State private var isSigningIn = false
@@ -34,19 +38,6 @@ struct SignInGateView: View {
 
             if isSigningIn {
                 ProgressView("Signing in…")
-            } else if auth.isSignedIn && !auth.canPostToEbay {
-                // Signed in, but this account isn't approved. Say whose account
-                // it is — otherwise the only way out looks like reinstalling.
-                VStack(spacing: 12) {
-                    Label("This account isn't approved yet", systemImage: "lock")
-                        .font(.headline)
-                    Text("Signed in as \(auth.email ?? "an unknown account"). Ask Sam to add it to the approved list, then reopen the app.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("Try a different account") { auth.signOut() }
-                        .buttonStyle(.bordered)
-                }
             } else {
                 VStack(spacing: 12) {
                     SignInWithAppleButton(.signIn) { request in
@@ -66,10 +57,7 @@ struct SignInGateView: View {
                     }
                     .buttonStyle(.bordered)
 
-                    // Apple hands over a @privaterelay address if you pick "Hide
-                    // My Email", and that can never match the approved list — so
-                    // warn before the choice, not after it fails.
-                    Text("Choose “Share My Email” when signing in with Apple — a hidden address can't be matched against the approved list.")
+                    Text("Your free listings each month come with the account you sign in with. Hiding your email is fine — nothing depends on the address.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -80,11 +68,7 @@ struct SignInGateView: View {
         }
         .padding(28)
         .errorAlert($signInError, title: "Couldn't sign in")
-        .task {
-            // An approved account added server-side should let them in on the
-            // next launch without signing in again.
-            await auth.refreshEntitlement()
-        }
+        .task { await auth.refreshEntitlement() }
     }
 
     private func signIn(_ work: @escaping () async throws -> Void) {

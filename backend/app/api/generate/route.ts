@@ -1,8 +1,8 @@
 import { generateListings } from '@/lib/generate';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { quotaExhaustedBody } from '@/lib/generateErrors';
-import { checkUsage, normaliseInstallId, recordUsage } from '@/lib/usage';
-import { AuthError, authoriseGeneration } from '@/lib/auth';
+import { checkUsage, recordUsage } from '@/lib/usage';
+import { AuthError, accountKeyFor, authoriseGeneration } from '@/lib/auth';
 
 export const maxDuration = 300;
 
@@ -13,25 +13,25 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   try {
     // Before the body is even read: generation can reach a paid model, so the
-    // caller has to be a verified, allow-listed account first.
-    await authoriseGeneration(request);
+    // caller has to be a verified account first, and then within its allowance.
+    const caller = await authoriseGeneration(request);
 
     const { images, notes } = (await request.json()) as { images: string[]; notes?: string[] };
     if (!images?.length) {
       return Response.json({ error: 'No images provided.' }, { status: 400 });
     }
 
-    const installId = normaliseInstallId(request.headers.get('x-install-id'));
-    const usage = await checkUsage(installId);
+    const account = { key: accountKeyFor(caller.user), email: caller.user.email };
+    const usage = await checkUsage(account);
     if (!usage.allowed) {
       return Response.json({ error: usage.error, fix: usage.fix }, { status: 429 });
     }
-    await recordUsage(installId);
+    await recordUsage(account);
 
     return Response.json(await generateListings(images, notes));
   } catch (error) {
-    // Not signed in or not allow-listed — a refusal, not a fault, so it
-    // shouldn't land in the error log as though generation broke.
+    // Not signed in — a refusal, not a fault, so it shouldn't land in the
+    // error log as though generation broke.
     if (error instanceof AuthError) {
       return Response.json({ error: error.message }, { status: 403 });
     }

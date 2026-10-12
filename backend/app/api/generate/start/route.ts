@@ -3,8 +3,8 @@ import { generateListings } from '@/lib/generate';
 import { isExhaustedForTheDay } from '@/lib/backoff';
 import { genericFailureBody, quotaExhaustedBody } from '@/lib/generateErrors';
 import { newJobId, writeJob } from '@/lib/jobs';
-import { checkUsage, normaliseInstallId, recordUsage } from '@/lib/usage';
-import { AuthError, authoriseGeneration } from '@/lib/auth';
+import { checkUsage, recordUsage } from '@/lib/usage';
+import { AuthError, accountKeyFor, authoriseGeneration } from '@/lib/auth';
 
 export const maxDuration = 300;
 
@@ -20,9 +20,10 @@ export const maxDuration = 300;
  */
 export async function POST(request: Request) {
   // Before anything else: generation can reach a paid model, so the caller has
-  // to be a verified, allow-listed account first.
+  // to be a verified account first, and then within its allowance.
+  let caller;
   try {
-    await authoriseGeneration(request);
+    caller = await authoriseGeneration(request);
   } catch (error) {
     if (error instanceof AuthError) {
       return Response.json({ error: error.message }, { status: 403 });
@@ -37,12 +38,12 @@ export async function POST(request: Request) {
 
   // Checked before the job exists: once generation starts it can reach a paid
   // model, and refusing after that bounds nothing.
-  const installId = normaliseInstallId(request.headers.get('x-install-id'));
-  const usage = await checkUsage(installId);
+  const account = { key: accountKeyFor(caller.user), email: caller.user.email };
+  const usage = await checkUsage(account);
   if (!usage.allowed) {
     return Response.json({ error: usage.error, fix: usage.fix }, { status: 429 });
   }
-  await recordUsage(installId);
+  await recordUsage(account);
 
   const jobId = newJobId();
   await writeJob(jobId, { status: 'pending', startedAt: new Date().toISOString() });

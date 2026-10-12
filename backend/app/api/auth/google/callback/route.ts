@@ -1,4 +1,5 @@
-import { isAllowedToPost, mintSession, verifyGoogleIdToken } from '@/lib/auth';
+import { accountKeyFor, mintSession, verifyGoogleIdToken } from '@/lib/auth';
+import { quotaFor } from '@/lib/usage';
 import { exchangeGoogleCode } from '@/lib/googleOAuth';
 
 /**
@@ -28,13 +29,16 @@ export async function GET(request: Request) {
     const tokens = await exchangeGoogleCode(code);
     if (!tokens.id_token) throw new Error('Google returned no id_token');
 
-    const email = await verifyGoogleIdToken(tokens.id_token);
-    const sessionToken = await mintSession({ email, provider: 'google' });
+    const identity = await verifyGoogleIdToken(tokens.id_token);
+    const user = { email: identity.email, sub: identity.sub, provider: 'google' as const };
+    const sessionToken = await mintSession(user);
+    const quota = await quotaFor({ key: accountKeyFor(user), email: user.email });
 
     const fragment = new URLSearchParams({
       session: sessionToken,
-      email,
-      can_post: String(isAllowedToPost(email)),
+      email: user.email,
+      used: String(quota.used),
+      limit: quota.limit === null ? '' : String(quota.limit),
     });
     return Response.redirect(`easylisting://auth#${fragment.toString()}`, 302);
   } catch (err) {

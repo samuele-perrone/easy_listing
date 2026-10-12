@@ -182,12 +182,15 @@ struct APIClient {
     struct SessionResponse: Codable {
         var sessionToken: String
         var email: String
-        var canPostToEbay: Bool
+        var listingsUsed: Int
+        /// Nil means this account has no monthly cap.
+        var listingsLimit: Int?
     }
 
     struct SessionCheck: Codable {
         var email: String
-        var canPostToEbay: Bool
+        var listingsUsed: Int
+        var listingsLimit: Int?
     }
 
     /// Trades an Apple identity token for one of the backend's sessions.

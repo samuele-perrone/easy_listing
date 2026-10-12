@@ -1,11 +1,12 @@
 import {
   AuthError,
-  isAllowedToPost,
+  accountKeyFor,
   mintSession,
   verifyAppleIdentityToken,
   verifyGoogleIdToken,
   verifySession,
 } from '@/lib/auth';
+import { quotaFor } from '@/lib/usage';
 
 /**
  * POST — trades a provider identity token for one of our sessions.
@@ -27,16 +28,19 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing provider or idToken.' }, { status: 400 });
     }
 
-    const email =
+    const identity =
       provider === 'apple'
         ? await verifyAppleIdentityToken(idToken)
         : await verifyGoogleIdToken(idToken);
 
-    const sessionToken = await mintSession({ email, provider });
+    const user = { email: identity.email, sub: identity.sub, provider };
+    const sessionToken = await mintSession(user);
+    const quota = await quotaFor({ key: accountKeyFor(user), email: user.email });
     return Response.json({
       sessionToken,
-      email,
-      canPostToEbay: isAllowedToPost(email),
+      email: user.email,
+      listingsUsed: quota.used,
+      listingsLimit: quota.limit,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -54,10 +58,12 @@ export async function GET(request: Request) {
 
   try {
     const user = await verifySession(token);
+    const quota = await quotaFor({ key: accountKeyFor(user), email: user.email });
     return Response.json({
       email: user.email,
       provider: user.provider,
-      canPostToEbay: isAllowedToPost(user.email),
+      listingsUsed: quota.used,
+      listingsLimit: quota.limit,
     });
   } catch {
     return Response.json({ error: 'Your sign-in has expired.' }, { status: 401 });

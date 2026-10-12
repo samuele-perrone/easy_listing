@@ -18,7 +18,9 @@ A public App Store release publishes that binary to everyone. **Ship per-install
 
 **The open-endpoint half of this is fixed** (12 Oct 2026): `/api/generate` and `/api/generate/start` now require a verified Apple/Google session whose email is in `ALLOWED_EMAILS`, so the shared pool is no longer exhaustible by anyone who finds the URL — and the URL is still hardcoded in every shipped binary (`APIClient.swift`), which no longer matters as much. Per-install counting (`lib/usage.ts`) sits behind that gate.
 
-**But an allow-list is not a shippable public model, and it now actively breaks App Review.** See the 2.1 note below: a reviewer signing in with their own Apple ID will not be on the list and will see "This account isn't approved yet" with a dead app. The allow-list is right for private testing and must be replaced, not merely extended, before submission. Pick one:
+**The allow-list is gone too (12 Oct 2026), which clears the 2.1 problem it created.** Anyone who signs in may use the app; cost is bounded by a per-account monthly allowance (`FREE_LISTINGS_PER_MONTH`, 10) rather than by who you are. A reviewer signs in with their own Apple ID and the app works — no demo account needed, and "Hide My Email" is harmless because usage is keyed on the provider's `sub`, not the address.
+
+What's left is a business decision, not a blocker: 10 free listings a month per account costs roughly 40p per active user at Anthropic's rates, less whenever Gemini's free tier serves it. Before that becomes real money, pick one:
 
 - **Subscription via in-app purchase.** Apple takes 15–30% and requires StoreKit; a server-side receipt check would gate `/api/generate`.
 - **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
@@ -30,7 +32,7 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 
 **3. App Review risks.** None fatal, all worth preparing for:
 
-- **2.1 Completeness — currently a guaranteed rejection.** Since 12 Oct 2026 the app opens only for an email in `ALLOWED_EMAILS`, so a reviewer signing in with their own Apple ID gets "This account isn't approved yet" and an app that does nothing. Not connecting eBay is fine — generation still works without it — but *not being on the allow-list* is fatal. Before submitting, the gate has to become a real access model (subscription, bring-your-own-key, or free-tier metering open to anyone who signs in). Adding the reviewer's address is not a fix: review accounts vary, and "Hide My Email" would defeat it anyway.
+- **2.1 Completeness** — a reviewer must be able to use the app. Since 12 Oct 2026 they can: signing in with any Apple or Google account grants the monthly allowance, so no demo credentials are needed and "Hide My Email" is harmless. Say in the review notes that sign-in is required and that it grants 10 free listings a month. Not connecting eBay is fine — generation works without it.
 - **5.1.1 Privacy** — photos go to a third party (Google). Must be declared in the App Privacy questionnaire and covered by the privacy policy (`/privacy` already says so). Note the free tier lets Google use submitted content to improve its services; a paid tier would remove that clause, and the questionnaire answer should match whichever is live at submission.
 - **5.2.1 Third-party trademarks** — the app names eBay, Vinted, Gumtree and Facebook Marketplace. Nominative use is generally fine, but leading with those names in the App Store *title or subtitle* invites rejection. Keep them in the description body, describing what the app does.
 - **3.1.1 In-app purchase** — if you charge, it must go through Apple's IAP, not an external payment link.
@@ -85,11 +87,10 @@ Attach **build 8** to version 1.0 (Build section → +). Anything from build 7 o
 
 ### 4. App Review Information
 
-Contact details, plus these notes:
-
-    Sign-in is not required to try the app. Tap +, add photos of any object, and tap
-    Generate listings. Generation takes 20-90 seconds and runs as a background job,
-    so the item appears in the list immediately and fills in when it's ready.
+Contact details, plus the notes drafted at the end of this file. **Keep them in
+step with how the app actually behaves** — they claimed "sign-in is not required"
+for two days after sign-in became mandatory, which would have been a third
+rejection.
 
     Connecting an eBay account is optional and only needed for posting directly to
     eBay. Vinted, Gumtree and Facebook Marketplace use a copy-to-clipboard flow
@@ -185,8 +186,13 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
 
 ### App Review notes
 
-    Sign-in is not required to try the app. Tap +, add photos of any object, and tap
-    Generate listings to see the full flow.
+    Sign in with Apple or Google on first launch — any account works, and it grants
+    10 free listings a month. Nothing else is needed; there is no demo account to
+    request. "Hide My Email" is fine.
+
+    Then tap +, add photos of any object, and tap Generate listings to see the full
+    flow. Generation takes 20-90 seconds and runs as a background job, so the item
+    appears in the list immediately and fills in when it is ready.
 
     Connecting an eBay account is optional and only needed for posting directly to eBay.
     All other marketplaces use a copy-to-clipboard flow because they have no public

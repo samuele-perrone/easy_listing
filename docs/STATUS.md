@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 144 tests — sign-in and the approved-account gate, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 152 tests — sign-in, the monthly allowance, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
@@ -72,30 +72,43 @@ courtesy; the endpoint is public, and publishing spends the seller's own eBay
 account. `/api/ebay/post` and `/api/ebay/publish` both answer **403** with a
 readable message when the caller isn't signed in or isn't on the list.
 
-- `ALLOWED_EMAILS` — comma-, space- or newline-separated. Add a tester by
-  appending their address and redeploying. **Unset or empty permits nobody**,
-  deliberately: an unset variable meaning "everyone" would turn one missed env
-  var into an open endpoint. `EBAY_POST_ALLOWED_EMAILS` is read as a fallback
-  because it was the original name, from when the list only governed eBay; both
-  are set in production and the old one can go once nothing depends on it.
-- `GENERATE_REQUIRE_AUTH=false` — the same escape hatch as the eBay one, for the
-  generation endpoints. Set and **removed again on 12 Oct 2026**, once build 12
-  was installed and confirmed working. Neither hatch is set now: both gates are
-  fully enforced.
+- `FREE_LISTINGS_PER_MONTH` (10) — the allowance a signed-in account gets each
+  calendar month. **This is the limit people actually meet**, so it is the one
+  that has to be explainable: "you've used your 10 free listings this month" is
+  something a seller can plan around.
+- `DAILY_LIMIT_TOTAL` (200) — a **circuit breaker**, not a product rule. Set it
+  well above normal use: when it fires, somebody who has done nothing wrong is
+  turned away for a reason they can neither see nor fix, so its message is
+  worded as ours ("Easy Listing is over capacity right now… this is on our side,
+  not yours") rather than as their allowance being spent.
+- `UNLIMITED_ACCOUNTS` — accounts with no monthly cap. **Not a gate**: it only
+  stops the owner being rate-limited by their own allowance while testing. Falls
+  back to the old `ALLOWED_EMAILS` name.
 - `AUTH_JWT_SECRET` — signs the session. Rotating it signs everyone out, which is
   the way to revoke every session at once.
-- `EBAY_POST_REQUIRE_AUTH=false` — escape hatch so a build that predates sign-in
-  keeps working. A request with no header passes; a *signed* request is still
-  checked against the list, so the hatch can't be used to bypass it by signing in
-  as anyone. **Set on 9 Oct and removed on 12 Oct 2026**, once build 11 was
-  installed and sign-in confirmed working. The gate is now fully enforced: an
-  unauthenticated call to `/api/ebay/post` or `/api/ebay/publish` is refused.
-  Builds 10 and earlier can therefore no longer post to eBay at all, by design.
+
+**Usage is charged to the provider's `sub`, not the email.** That makes Apple's
+"Hide My Email" a non-event: the relay address changes nothing, because nothing
+depends on the address. Keying on email would have stranded every seller who
+chose that option, with no fix available to them or to us. Sessions minted
+before 12 Oct 2026 carry no `sub` and fall back to an email-derived key rather
+than being signed out.
+
+**The allow-list is gone (12 Oct 2026), and that was the point.** It gated the
+app for about six hours. A list means a stranger who downloads the app installs
+something that cannot work, with nothing they can do about it — and it would
+have failed App Review 2.1 for exactly that reason. What bounds cost now is the
+monthly quota, which has a number attached and so can be explained.
+
+**Both escape hatches are gone too.** `GENERATE_REQUIRE_AUTH` and
+`EBAY_POST_REQUIRE_AUTH` existed only to keep pre-sign-in builds working during
+the rollout; the code paths are removed, and setting the variables does nothing.
+A test asserts that.
 
 **Generation is gated too, as of 12 Oct 2026.** `/api/generate` and
-`/api/generate/start` both require a verified, approved session, and the app
-shows `SignInGateView` instead of the item list until there is one. That closes
-the open-`/api/generate` App Store blocker recorded in
+`/api/generate/start` both require a verified session, and the app shows
+`SignInGateView` instead of the item list until there is one. That closes the
+open-`/api/generate` App Store blocker recorded in
 [APP_STORE.md](APP_STORE.md).
 
 This matters more than the eBay gate: the daily caps in `lib/usage.ts` bound how
@@ -228,7 +241,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 170 tests (144 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 178 tests (152 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 

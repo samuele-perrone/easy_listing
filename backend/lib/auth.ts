@@ -18,6 +18,7 @@
  */
 
 import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from 'jose';
+import { normaliseAccountKey } from '@/lib/usage';
 
 const APPLE_ISSUER = 'https://appleid.apple.com';
 const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
@@ -30,6 +31,18 @@ export type Provider = 'apple' | 'google';
 export interface SignedInUser {
   email: string;
   provider: Provider;
+  /**
+   * The provider's stable id for this person.
+   *
+   * Quota is keyed on this, not the email, so Apple's "Hide My Email" is a
+   * non-event: the relay address changes nothing, because nothing depends on
+   * the address. Keying on email would have stranded every seller who picked
+   * that option, with no fix available to them or to us.
+   *
+   * Optional because sessions minted before 12 Oct 2026 don't carry it; those
+   * fall back to an email-derived key rather than signing everyone out.
+   */
+  sub?: string;
 }
 
 /** Apple sends `email_verified` as a boolean or the string "true", depending on the flow. */
@@ -37,7 +50,7 @@ function isVerified(claim: unknown): boolean {
   return claim === true || claim === 'true';
 }
 
-function requireEmail(payload: JWTPayload, provider: Provider): string {
+function requireIdentity(payload: JWTPayload, provider: Provider): { email: string; sub: string } {
   const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : '';
   if (!email) {
     // Apple omits the email claim if the app's authorization was never granted
@@ -51,7 +64,9 @@ function requireEmail(payload: JWTPayload, provider: Provider): string {
   if (!isVerified(payload.email_verified)) {
     throw new AuthError('That email address has not been verified with ' + provider + '.');
   }
-  return email;
+  const sub = typeof payload.sub === 'string' ? payload.sub : '';
+  if (!sub) throw new AuthError('That sign-in carried no account id.');
+  return { email, sub };
 }
 
 export class AuthError extends Error {
@@ -62,7 +77,7 @@ export class AuthError extends Error {
 }
 
 /** Verifies a native Sign in with Apple identity token. */
-export async function verifyAppleIdentityToken(idToken: string): Promise<string> {
+export async function verifyAppleIdentityToken(idToken: string): Promise<{ email: string; sub: string }> {
   // The audience is the app's bundle id for a native sign-in (it would be the
   // Services ID for a web one, which we don't use).
   const audience = process.env.APPLE_CLIENT_ID ?? 'com.samperrone.easylisting';
@@ -70,18 +85,18 @@ export async function verifyAppleIdentityToken(idToken: string): Promise<string>
     issuer: APPLE_ISSUER,
     audience,
   });
-  return requireEmail(payload, 'apple');
+  return requireIdentity(payload, 'apple');
 }
 
 /** Verifies a Google OIDC id_token. */
-export async function verifyGoogleIdToken(idToken: string): Promise<string> {
+export async function verifyGoogleIdToken(idToken: string): Promise<{ email: string; sub: string }> {
   const audience = process.env.GOOGLE_OAUTH_CLIENT_ID;
   if (!audience) throw new AuthError('GOOGLE_OAUTH_CLIENT_ID is not configured.');
   const { payload } = await jwtVerify(idToken, googleKeys, {
     issuer: GOOGLE_ISSUERS,
     audience,
   });
-  return requireEmail(payload, 'google');
+  return requireIdentity(payload, 'google');
 }
 
 function sessionSecret(): Uint8Array {
@@ -99,7 +114,7 @@ function sessionSecret(): Uint8Array {
  * sign-in sheet in front of someone who is halfway through listing an item.
  */
 export async function mintSession(user: SignedInUser): Promise<string> {
-  return new SignJWT({ email: user.email, provider: user.provider })
+  return new SignJWT({ email: user.email, provider: user.provider, sub: user.sub })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setIssuer('easy-listing')
@@ -116,12 +131,26 @@ export async function verifySession(token: string): Promise<SignedInUser> {
   const email = typeof payload.email === 'string' ? payload.email.toLowerCase() : '';
   const provider = payload.provider === 'apple' || payload.provider === 'google' ? payload.provider : undefined;
   if (!email || !provider) throw new AuthError('Session is missing its email.');
-  return { email, provider };
+  const sub = typeof payload.sub === 'string' && payload.sub ? payload.sub : undefined;
+  return { email, provider, sub };
 }
 
 /**
- * Emails permitted to use the app at all — generating listings and posting to
- * eBay both check this one list. Comma-, space- or newline-separated so it can
+ * The key a session's usage is charged to.
+ *
+ * Prefers the provider's stable id. Sessions minted before that was carried
+ * fall back to the email, prefixed so the two namespaces can never collide.
+ */
+export function accountKeyFor(user: SignedInUser): string {
+  return normaliseAccountKey(user.sub ?? `email-${user.email}`);
+}
+
+/**
+ * @deprecated Not a gate any more. Kept only because `lib/usage.ts` reads the
+ * same variable to decide which accounts are uncapped — see `isUncapped`.
+ * Anyone signed in may use the app; cost is bounded by the monthly quota.
+ *
+ * Historically: emails permitted to use the app at all. Comma-, space- or newline-separated so it can
  * be pasted in any shape.
  *
  * `ALLOWED_EMAILS` is the name to use. `EBAY_POST_ALLOWED_EMAILS` is read as a
@@ -158,18 +187,6 @@ export function isAllowedToPost(email: string): boolean {
 }
 
 /**
- * Whether eBay writes demand a signed-in, allow-listed caller.
- *
- * Defaults to on. The escape hatch exists for one specific situation: a build
- * already on a phone predates sign-in entirely and would lose eBay posting the
- * moment this deploys. Set `EBAY_POST_REQUIRE_AUTH=false` to keep those working
- * until the new build is installed, then remove it.
- */
-export function requireAuthForEbay(): boolean {
-  return process.env.EBAY_POST_REQUIRE_AUTH !== 'false';
-}
-
-/**
  * Refuses a request, saying why in the log.
  *
  * A 403 is not a fault, so it doesn't belong in the error log — but logging
@@ -190,20 +207,9 @@ const REFUSALS: Record<string, string> = {
 };
 
 export interface Authorisation {
-  email: string | null;
+  email: string;
   allowed: boolean;
-}
-
-/**
- * Whether generating a listing demands a signed-in, allow-listed caller.
- *
- * Same shape of escape hatch as `requireAuthForEbay`, and for the same reason:
- * a build already on a phone predates sign-in on this endpoint and would stop
- * generating the moment it deploys. Set `GENERATE_REQUIRE_AUTH=false` until the
- * new build is installed, then remove it.
- */
-export function requireAuthForGeneration(): boolean {
-  return process.env.GENERATE_REQUIRE_AUTH !== 'false';
+  user: SignedInUser;
 }
 
 /**
@@ -220,7 +226,6 @@ export async function authoriseGeneration(request: Request): Promise<Authorisati
   const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
 
   if (!token) {
-    if (!requireAuthForGeneration()) return { email: null, allowed: true };
     refuse('generation', 'no session', 'no Authorization header');
   }
 
@@ -232,13 +237,12 @@ export async function authoriseGeneration(request: Request): Promise<Authorisati
     refuse('generation', 'bad session', error instanceof Error ? error.message : 'unverifiable');
   }
 
-  if (!isAllowed(user.email)) {
-    console.log(`refused generation: not on the approved list (${user.email})`);
-    throw new AuthError(
-      `Easy Listing isn’t enabled for ${user.email}. Ask Sam to add it, or sign in with a different account.`,
-    );
-  }
-  return { email: user.email, allowed: true };
+  // Signing in is the whole requirement. There is deliberately no allow-list
+  // here any more: a list means a stranger who downloads the app installs
+  // something that cannot work, with no way forward. What bounds cost is the
+  // per-account quota in lib/usage.ts, which has a number attached and so can
+  // be explained.
+  return { email: user.email, allowed: true, user };
 }
 
 /**
@@ -250,7 +254,6 @@ export async function authoriseEbayPost(request: Request): Promise<Authorisation
   const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
 
   if (!token) {
-    if (!requireAuthForEbay()) return { email: null, allowed: true };
     refuse('ebay', 'no session (ebay)', 'no Authorization header');
   }
 
@@ -262,12 +265,8 @@ export async function authoriseEbayPost(request: Request): Promise<Authorisation
     refuse('ebay', 'bad session', error instanceof Error ? error.message : 'unverifiable');
   }
 
-  if (!isAllowedToPost(user.email)) {
-    console.log(`refused ebay: not on the approved list (${user.email})`);
-    throw new AuthError(
-      `${user.email} isn’t on the list of accounts allowed to post to eBay. ` +
-        `Ask Sam to add it, or sign in with a different account.`,
-    );
-  }
-  return { email: user.email, allowed: true };
+  // Posting spends the seller's *own* eBay account through their own OAuth
+  // token, so it costs us nothing and needs no allowance — being signed in is
+  // the only requirement.
+  return { email: user.email, allowed: true, user };
 }

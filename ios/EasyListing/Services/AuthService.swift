@@ -1,18 +1,27 @@
 import Foundation
 import AuthenticationServices
 
-/// Sign in with Apple and Google, and whether this account may post to eBay.
+/// Sign in with Apple and Google, and what's left of this month's allowance.
 ///
 /// The app holds a session minted by the backend after it verified the
-/// provider's identity token. `canPostToEbay` is the backend's answer about the
-/// allow-list, not a decision made here — the button it hides is a courtesy,
-/// and the real check happens server-side on every eBay write.
+/// provider's identity token. Anyone who signs in can use the app; what's
+/// rationed is how many listings a month, and the numbers here are the
+/// backend's answer, not a decision made locally — the real check happens
+/// server-side on every generation.
 @MainActor
 final class AuthService: NSObject, ObservableObject {
     static let shared = AuthService()
 
     @Published var email: String? = Keychain.get("authEmail")
-    @Published var canPostToEbay: Bool = Keychain.get("authCanPost") == "true"
+    @Published var listingsUsed: Int = Int(Keychain.get("authUsed") ?? "") ?? 0
+    /// Nil means no monthly cap on this account.
+    @Published var listingsLimit: Int? = Keychain.get("authLimit").flatMap(Int.init)
+
+    /// What the seller has left this month, or nil when uncapped.
+    var listingsLeft: Int? {
+        guard let listingsLimit else { return nil }
+        return max(0, listingsLimit - listingsUsed)
+    }
 
     var isSignedIn: Bool { Keychain.get("authSession") != nil }
 
@@ -44,7 +53,8 @@ final class AuthService: NSObject, ObservableObject {
                 throw APIClient.APIError(message: "Apple did not return an identity token.")
             }
             let response = try await APIClient.exchangeIdentityToken(provider: "apple", idToken: identityToken)
-            store(session: response.sessionToken, email: response.email, canPost: response.canPostToEbay)
+            store(session: response.sessionToken, email: response.email,
+                  used: response.listingsUsed, limit: response.listingsLimit)
         }
     }
 
@@ -88,30 +98,32 @@ final class AuthService: NSObject, ObservableObject {
         guard let session = params["session"], let email = params["email"] else {
             throw APIClient.APIError(message: "Google sign-in did not return a session.")
         }
-        store(session: session, email: email, canPost: params["can_post"] == "true")
+        // An empty `limit` means the account is uncapped.
+        let limit = (params["limit"]?.isEmpty == false) ? Int(params["limit"] ?? "") : nil
+        store(session: session, email: email, used: Int(params["used"] ?? "") ?? 0, limit: limit)
     }
 
     // MARK: - State
 
-    private func store(session: String, email: String, canPost: Bool) {
+    private func store(session: String, email: String, used: Int, limit: Int?) {
         Keychain.set(session, for: "authSession")
         Keychain.set(email, for: "authEmail")
-        Keychain.set(canPost ? "true" : "false", for: "authCanPost")
+        Keychain.set(String(used), for: "authUsed")
+        if let limit { Keychain.set(String(limit), for: "authLimit") }
+        else { Keychain.delete("authLimit") }
         self.email = email
-        self.canPostToEbay = canPost
+        self.listingsUsed = used
+        self.listingsLimit = limit
     }
 
-    /// Re-asks the backend about this session. Being added to the allow-list
-    /// happens server-side, so without this the seller would have to sign out
-    /// and back in to see the button appear.
+    /// Re-asks the backend how much of the allowance is left, so the number the
+    /// seller sees is current rather than whatever it was at sign-in.
     func refreshEntitlement() async {
         guard let token = sessionToken else { return }
         do {
             let result = try await APIClient.checkSession(sessionToken: token)
-            Keychain.set(result.canPostToEbay ? "true" : "false", for: "authCanPost")
-            Keychain.set(result.email, for: "authEmail")
-            email = result.email
-            canPostToEbay = result.canPostToEbay
+            store(session: token, email: result.email,
+                  used: result.listingsUsed, limit: result.listingsLimit)
         } catch let error as APIClient.APIError where error.httpStatus == 401 {
             // The session expired or the signing secret was rotated. Clear it so
             // the UI offers sign-in again rather than a button that can't work.
@@ -122,11 +134,10 @@ final class AuthService: NSObject, ObservableObject {
     }
 
     func signOut() {
-        Keychain.delete("authSession")
-        Keychain.delete("authEmail")
-        Keychain.delete("authCanPost")
+        for key in ["authSession", "authEmail", "authUsed", "authLimit"] { Keychain.delete(key) }
         email = nil
-        canPostToEbay = false
+        listingsUsed = 0
+        listingsLimit = nil
     }
 }
 

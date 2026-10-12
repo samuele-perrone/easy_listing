@@ -76,35 +76,16 @@ describe('POST /api/ebay/post', () => {
     expect(createListing).not.toHaveBeenCalled();
   });
 
-  it('refuses a signed-in email that is not allow-listed, and does no eBay work', async () => {
-    const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
-    const response = await POST(postRequest(token));
-
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({
-      error: expect.stringContaining('isn’t on the list'),
-    });
-    expect(put).not.toHaveBeenCalled();
-    expect(createListing).not.toHaveBeenCalled();
-  });
-
   it('refuses a forged session', async () => {
     const response = await POST(postRequest('clearly.not.a.jwt'));
     expect(response.status).toBe(403);
     expect(createListing).not.toHaveBeenCalled();
   });
 
-  it('refuses when the allow-list is unset, rather than letting everyone through', async () => {
-    delete process.env.EBAY_POST_ALLOWED_EMAILS;
-    const token = await mintSession({ email: 'samuele.perrone@gmail.com', provider: 'apple' });
-    const response = await POST(postRequest(token));
-
-    expect(response.status).toBe(403);
-    expect(createListing).not.toHaveBeenCalled();
-  });
-
-  it('lists for an allow-listed seller', async () => {
-    const token = await mintSession({ email: 'samuele.perrone@gmail.com', provider: 'apple' });
+  it('lists for any signed-in seller', async () => {
+    // Posting spends the seller's own eBay account via their own OAuth token,
+    // so there is nothing to ration and no list to be on.
+    const token = await mintSession({ email: 'stranger@example.com', provider: 'google', sub: 'g-1' });
     const response = await POST(postRequest(token));
 
     expect(response.status).toBe(200);
@@ -121,27 +102,19 @@ describe('POST /api/ebay/post', () => {
     expect(publish).toBe(true);
   });
 
-  it('lets an older build through when the escape hatch is set', async () => {
-    // EBAY_POST_REQUIRE_AUTH=false exists so a build predating sign-in keeps
-    // working; it must not also start admitting non-allow-listed accounts.
+  it('has no escape hatch', async () => {
+    // EBAY_POST_REQUIRE_AUTH existed only for the 12 Oct rollout.
     process.env.EBAY_POST_REQUIRE_AUTH = 'false';
-
-    const anonymous = await POST(postRequest());
-    expect(anonymous.status).toBe(200);
-
-    createListing.mockClear();
-    const stranger = await mintSession({ email: 'stranger@example.com', provider: 'google' });
-    const refused = await POST(postRequest(stranger));
-    expect(refused.status).toBe(403);
+    expect((await POST(postRequest())).status).toBe(403);
     expect(createListing).not.toHaveBeenCalled();
   });
 
-  it('still translates an eBay failure for an allowed seller', async () => {
+  it('still translates an eBay failure for a signed-in seller', async () => {
     const { EbayApiError } = await import('@/lib/ebayErrors');
     createListing.mockRejectedValue(
       new EbayApiError('Creating the listing', JSON.stringify({ errors: [{ errorId: 25002 }] })),
     );
-    const token = await mintSession({ email: 'samuele.perrone@gmail.com', provider: 'apple' });
+    const token = await mintSession({ email: 'samuele.perrone@gmail.com', provider: 'apple', sub: 'a-1' });
     const response = await POST(postRequest(token));
 
     expect(response.status).toBe(500);

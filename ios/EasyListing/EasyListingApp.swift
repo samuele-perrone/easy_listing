@@ -8,10 +8,10 @@ struct EasyListingApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                // `canPostToEbay` is the backend's answer about the approved
-                // list, which now governs generation too — so it's the same
-                // condition for reaching the app at all.
-                if auth.isSignedIn && auth.canPostToEbay {
+                // Signing in is the only requirement: there is no approved
+                // list any more. What's rationed is the monthly allowance, and
+                // that is reported inside the app, not used to bar entry.
+                if auth.isSignedIn {
                     HistoryView()
                 } else if Self.isScreenshotRun {
                     // Screenshots are captured from seeded local data with no

@@ -65,8 +65,8 @@ struct SettingsView: View {
             .errorAlert($connectError, title: "Couldn't connect eBay")
             .errorAlert($signInError, title: "Couldn't sign in")
             .task {
-                // The allow-list lives on the server, so someone can be added
-                // without touching the app. Re-ask on each visit here.
+                // The allowance is spent server-side, so the number here is
+                // only current if it is re-read on each visit.
                 await auth.refreshEntitlement()
             }
         }
@@ -77,12 +77,10 @@ struct SettingsView: View {
         Section {
             if auth.isSignedIn {
                 LabeledContent("Signed in", value: auth.email ?? "—")
-                if auth.canPostToEbay {
-                    Label("Can post to eBay", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                if let left = auth.listingsLeft, let limit = auth.listingsLimit {
+                    LabeledContent("Listings left this month", value: "\(left) of \(limit)")
                 } else {
-                    Label("Not enabled for eBay posting", systemImage: "lock")
-                        .foregroundStyle(.secondary)
+                    LabeledContent("Listings left this month", value: "Unlimited")
                 }
                 Button("Sign out", role: .destructive) { auth.signOut() }
             } else if isSigningIn {
@@ -108,7 +106,7 @@ struct SettingsView: View {
         } header: {
             Text("Account")
         } footer: {
-            Text("Posting to eBay is limited to approved accounts. Everything else — generating listings and the copy-paste flow — works without signing in.")
+            Text("Signing in is what gives you a monthly allowance of listings. The allowance resets on the 1st; everything you have already generated stays available.")
         }
     }
 

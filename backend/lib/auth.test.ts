@@ -5,7 +5,6 @@ import {
   authoriseEbayPost,
   isAllowedToPost,
   mintSession,
-  requireAuthForEbay,
   verifySession,
 } from './auth';
 
@@ -90,25 +89,19 @@ describe('sessions', () => {
 });
 
 describe('authoriseEbayPost', () => {
-  it('rejects an unsigned request by default', async () => {
-    delete process.env.EBAY_POST_REQUIRE_AUTH;
-    expect(requireAuthForEbay()).toBe(true);
+  it('rejects an unsigned request', async () => {
     await expect(authoriseEbayPost(requestWith())).rejects.toThrow(/Sign in with Apple or Google/);
   });
 
-  it('rejects a signed-in email that isn’t on the list', async () => {
-    process.env.EBAY_POST_ALLOWED_EMAILS = 'samuele.perrone@gmail.com';
-    const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
-    await expect(authoriseEbayPost(requestWith(token))).rejects.toThrow(/isn’t on the list/);
-  });
-
-  it('admits an allow-listed email', async () => {
-    process.env.EBAY_POST_ALLOWED_EMAILS = 'samuele.perrone@icloud.com';
-    const token = await mintSession({ email: 'samuele.perrone@icloud.com', provider: 'apple' });
-    await expect(authoriseEbayPost(requestWith(token))).resolves.toEqual({
-      email: 'samuele.perrone@icloud.com',
-      allowed: true,
-    });
+  it('admits any signed-in account', async () => {
+    // Posting spends the seller's own eBay account through their own OAuth
+    // token, so there is nothing to ration and no list to be on.
+    process.env.ALLOWED_EMAILS = 'someone.else@example.com';
+    const token = await mintSession({ email: 'stranger@example.com', provider: 'google', sub: 'g-1' });
+    const result = await authoriseEbayPost(requestWith(token));
+    expect(result.email).toBe('stranger@example.com');
+    expect(result.allowed).toBe(true);
+    expect(result.user.sub).toBe('g-1');
   });
 
   it('rejects a garbled token rather than treating it as anonymous', async () => {
@@ -116,16 +109,13 @@ describe('authoriseEbayPost', () => {
     await expect(authoriseEbayPost(requestWith('not-a-jwt'))).rejects.toThrow(AuthError);
   });
 
-  it('still checks the allow-list when auth is not required', async () => {
-    // The escape hatch is for builds that predate sign-in, so a request with no
-    // token passes — but a request that *is* signed still has to be allowed, or
-    // the hatch would become a way to bypass the list by signing in as anyone.
+  it('has no escape hatch left', async () => {
+    // EBAY_POST_REQUIRE_AUTH / GENERATE_REQUIRE_AUTH existed only to keep
+    // pre-sign-in builds working during the 12 Oct rollout. They are gone, and
+    // setting them must not reopen anything.
     process.env.EBAY_POST_REQUIRE_AUTH = 'false';
-    process.env.EBAY_POST_ALLOWED_EMAILS = 'samuele.perrone@gmail.com';
-    await expect(authoriseEbayPost(requestWith())).resolves.toEqual({ email: null, allowed: true });
-
-    const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
-    await expect(authoriseEbayPost(requestWith(token))).rejects.toThrow(/isn’t on the list/);
+    process.env.GENERATE_REQUIRE_AUTH = 'false';
+    await expect(authoriseEbayPost(requestWith())).rejects.toThrow(/Sign in with Apple or Google/);
   });
 });
 
@@ -140,14 +130,13 @@ describe('refusals are logged', () => {
       const token = await mintSession({ email: 'stranger@example.com', provider: 'google' });
 
       await expect(authoriseEbayPost(requestWith())).rejects.toThrow();
-      await expect(authoriseEbayPost(requestWith(token))).rejects.toThrow();
       await expect(authoriseEbayPost(requestWith('not-a-jwt'))).rejects.toThrow();
+      void token;
     } finally {
       spy.mockRestore();
     }
 
     expect(logged.some((l) => l.includes('no session'))).toBe(true);
-    expect(logged.some((l) => l.includes('not on the approved list') && l.includes('stranger@example.com'))).toBe(true);
     expect(logged.some((l) => l.includes('bad session'))).toBe(true);
     expect(logged.join('\n')).not.toContain('not-a-jwt');
   });
