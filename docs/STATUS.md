@@ -286,7 +286,7 @@ Each of these cost a debugging round trip. They are all fixed, but the reasoning
 | Symptom | Cause | Fix |
 |---|---|---|
 | Keyset disabled, no RuName anywhere | eBay disables production keysets until you implement their account-deletion webhook | `app/api/ebay/deletion/route.ts` — GET returns `sha256(challengeCode + verificationToken + endpointURL)` |
-| `vercel logs` shows nothing but the deletion webhook, and any real failure is already gone | eBay fires one notification per account closure across the whole marketplace — about two a minute — and each one produces a log record. At 50 retrievable records that leaves roughly a **25-minute** window, so the 2004 condition failure could not be read back at all and had to be caught by streaming `vercel logs --follow` while the seller retried. The handler also logged the **whole notification body**, which carries that person's `username`, `userId` and `eiasToken` — third parties' personal data in the request log, against both the route's own comment and `/privacy` | Log only `notification.notificationId`. That fixes the privacy leak and shrinks each line, but **not** the record count: one request still means one log row, so the window is still swamped and after-the-fact debugging still isn't practical. Catch failures live with `--follow`, or stop logging the webhook entirely to reclaim the window |
+| `vercel logs` shows nothing but the deletion webhook, and any real failure is already gone | eBay fires one notification per account closure across the whole marketplace — about two a minute — and each one produces a log record. At 50 retrievable records that leaves roughly a **25-minute** window, so the 2004 condition failure could not be read back at all and had to be caught by streaming `vercel logs --follow` while the seller retried. The handler also logged the **whole notification body**, which carries that person's `username`, `userId` and `eiasToken` — third parties' personal data in the request log, against both the route's own comment and `/privacy` | Log only `notification.notificationId` — that fixes the privacy leak, and is all this change can fix. **The log window cannot be reclaimed from application code**: one *request* produces one log record whether or not the handler logs anything (measured 12 Oct — a 403 with no `console.log` at all still occupied a record). Removing the log line entirely would change nothing. Nor does `--status-code` filtering recover old events: a 7-day query for 500s returned nothing, so the 9 Oct failures are simply gone. Catch failures live with `vercel logs --follow`, or set up a log drain if durable history is ever needed |
 | `25709 Invalid value for header Accept-Language` | Node's `fetch` sends `accept-language: *` by default, which eBay rejects. We never set the header. | `ebayHeaders()` sets it explicitly from the marketplace |
 | `25001 Core Inventory Service internal error` | Transient eBay fault | Retry once after 1.5s |
 | `1100 Insufficient permissions` on taxonomy | The Taxonomy API needs eBay's **base** scope, which the seller token doesn't carry | Mint a client-credentials application token instead of re-prompting the seller |
@@ -370,6 +370,9 @@ There are **two** keys in that directory. `5LGP386KP6` is the one that works —
 
     export ASC_KEY_ID=5LGP386KP6
     export ASC_ISSUER_ID=<the-uuid>
+
+Both are in `~/.zshrc` as of 12 Oct 2026, so `release.sh` and `asc_builds.py`
+need no arguments and the issuer no longer has to be hunted down.
 
 `release.sh` takes about 2 minutes end to end (archive ~1m40s, export ~2s, upload ~5s), then 5–15 minutes of processing before the build appears in TestFlight.
 
