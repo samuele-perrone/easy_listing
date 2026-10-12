@@ -16,7 +16,9 @@ A public App Store release publishes that binary to everyone. **Ship per-install
 
 **1. Generation capacity — measured, and it's tiny.** Production runs on Gemini's free tier, capped at 20 generations per model per day. Three free models are chained, so **60 a day, shared across every install** — not per user. That is fine for one seller and nowhere near a public release; it's roughly a handful of testers' worth of one afternoon. The free tier also had sustained stretches with no capacity at all (0 of 5 requests succeeded on 23 Sep 2026), which the chain routes around only while some model still has capacity.
 
-Compounding it, `/api/generate` has no auth, no rate limit and no per-user metering, and `APIClient.swift` hardcodes the backend URL into every shipped binary — so the 20/day pool is exhaustible by anyone who finds the endpoint, not just by real users. Pick one before launch:
+**The open-endpoint half of this is fixed** (12 Oct 2026): `/api/generate` and `/api/generate/start` now require a verified Apple/Google session whose email is in `ALLOWED_EMAILS`, so the shared pool is no longer exhaustible by anyone who finds the URL — and the URL is still hardcoded in every shipped binary (`APIClient.swift`), which no longer matters as much. Per-install counting (`lib/usage.ts`) sits behind that gate.
+
+**But an allow-list is not a shippable public model, and it now actively breaks App Review.** See the 2.1 note below: a reviewer signing in with their own Apple ID will not be on the list and will see "This account isn't approved yet" with a dead app. The allow-list is right for private testing and must be replaced, not merely extended, before submission. Pick one:
 
 - **Subscription via in-app purchase.** Apple takes 15–30% and requires StoreKit; a server-side receipt check would gate `/api/generate`.
 - **Bring your own key.** Users paste their own Anthropic or Gemini key in Settings. Zero cost and zero shared quota, but a poor experience for non-technical sellers — and the audience for this app is non-technical sellers.
@@ -28,7 +30,7 @@ On the provider side the **fallback chain** is built (`lib/provider.ts`) and cur
 
 **3. App Review risks.** None fatal, all worth preparing for:
 
-- **2.1 Completeness** — a reviewer without an eBay account must still see the app work. Generation works without connecting eBay, so this should pass; note it in review notes.
+- **2.1 Completeness — currently a guaranteed rejection.** Since 12 Oct 2026 the app opens only for an email in `ALLOWED_EMAILS`, so a reviewer signing in with their own Apple ID gets "This account isn't approved yet" and an app that does nothing. Not connecting eBay is fine — generation still works without it — but *not being on the allow-list* is fatal. Before submitting, the gate has to become a real access model (subscription, bring-your-own-key, or free-tier metering open to anyone who signs in). Adding the reviewer's address is not a fix: review accounts vary, and "Hide My Email" would defeat it anyway.
 - **5.1.1 Privacy** — photos go to a third party (Google). Must be declared in the App Privacy questionnaire and covered by the privacy policy (`/privacy` already says so). Note the free tier lets Google use submitted content to improve its services; a paid tier would remove that clause, and the questionnaire answer should match whichever is live at submission.
 - **5.2.1 Third-party trademarks** — the app names eBay, Vinted, Gumtree and Facebook Marketplace. Nominative use is generally fine, but leading with those names in the App Store *title or subtitle* invites rejection. Keep them in the description body, describing what the app does.
 - **3.1.1 In-app purchase** — if you charge, it must go through Apple's IAP, not an external payment link.
