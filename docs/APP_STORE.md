@@ -92,16 +92,10 @@ step with how the app actually behaves** — they claimed "sign-in is not requir
 for two days after sign-in became mandatory, which would have been a third
 rejection.
 
-    Connecting an eBay account is optional and only needed for posting directly to
-    eBay. Vinted, Gumtree and Facebook Marketplace use a copy-to-clipboard flow
-    because they have no public seller API.
-
-    Photos are sent to Google's Gemini API, and to Anthropic's API when Gemini is
-    unavailable, to generate the listing text. This is described in the privacy
-    policy. No account is created and no personal data is collected.
-
-    There is a daily limit of 30 generations per install. If you exceed it during
-    review, the app says so plainly and the limit resets the next day.
+Paste the block under **App Review notes** at the end of this file — don't
+retype it here, or the two drift apart. (They did: this section claimed a
+"daily limit of 30 generations per install" for a day after that was replaced by
+10 free listings per month per account.)
 
 ### 5. App Privacy → Publish
 
@@ -117,9 +111,30 @@ The alternative was declaring trader, which publishes name, address, phone and e
 
 **Revisit this if the app ever charges.** A subscription or in-app purchase makes the activity commercial: trader status, the Paid Apps Agreement, and a contactable business address all become necessary together.
 
-### 7. Screenshots
+### 7. Screenshots — ✅ uploaded 12 Oct 2026
 
-Five are captured at 1320×2868 but use colour swatches where item photos belong. Replace `swatch()` in `ios/EasyListing/ScreenshotSeed.swift` with real photos and re-run the capture (see STATUS.md), then upload 3–10 under iPhone 6.9".
+Three real captures from a phone, at **1170 × 2532 (6.1-inch)**, sRGB, 8-bit, no
+alpha: the "Where to sell" ranking, the new-item screen, and the history list.
+
+Two traps, both of which cost time:
+
+- **The required display size is 6.1-inch**, not 6.9-inch, and **6.3-inch accepts
+  1206 × 2622** — the native size of an iPhone 16/17 Pro, so phone captures need
+  no resizing at all for that slot. Check Apple's
+  [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/)
+  rather than assuming; they have changed.
+- **"File dimensions are invalid" usually means the wrong well, not the wrong
+  file.** Every size was rejected until it turned out the uploads were going to
+  *Product Page Information → Search Results*, which wants large landscape
+  marketing art (1920 × 1280 and up) and is entirely optional. Screenshots go in
+  **App Previews and Screenshots**.
+
+The sign-in screen was captured too and deliberately **not** uploaded: guideline
+2.3.3 says screenshots must show the app in use, "not merely the title art,
+login page, or splash screen". It belongs in the screen recording instead.
+
+The UI-test capture path (`ScreenshotTests.swift`, seeded data, 1320×2868) still
+exists but was not used — it renders colour swatches where item photos belong.
 
 ### 8. Outside App Store Connect
 
