@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { createListing, listingViewURL, type DraftInput } from '@/lib/ebay';
-import { toFriendly } from '@/lib/ebayErrors';
+import { EbayApiError, toFriendly } from '@/lib/ebayErrors';
+import { explainIfUnmapped } from '@/lib/ebayFriendly';
 import { AuthError, authoriseEbayPost } from '@/lib/auth';
 
 export const maxDuration = 300;
@@ -13,6 +14,10 @@ interface Body {
 }
 
 export async function POST(request: Request) {
+  // Kept outside the try so the error path can quote the seller's own wording
+  // back at them — eBay's complaints are usually about specific text.
+  let draftForErrors: DraftInput | undefined;
+
   try {
     // Before anything else, and before any work that costs money: publishing
     // spends the seller's own eBay account, so the allow-list is enforced here
@@ -20,6 +25,7 @@ export async function POST(request: Request) {
     const caller = await authoriseEbayPost(request);
 
     const { accessToken, publish, draft, images } = (await request.json()) as Body;
+    draftForErrors = draft;
     if (!accessToken || !draft || !images?.length) {
       return Response.json({ error: 'Missing accessToken, draft, or images.' }, { status: 400 });
     }
@@ -47,6 +53,14 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('ebay post failed', error);
-    return Response.json(toFriendly(error, 'Posting to eBay'), { status: 500 });
+    const friendly = toFriendly(error, 'Posting to eBay');
+    return Response.json(
+      await explainIfUnmapped(friendly, error, {
+        action: 'Posting to eBay',
+        title: draftForErrors?.title,
+        categoryQuery: draftForErrors?.categoryQuery,
+      }),
+      { status: 500 },
+    );
   }
 }

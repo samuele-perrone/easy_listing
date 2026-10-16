@@ -1,5 +1,6 @@
 import { EBAY, ebayHeaders, listingViewURL } from '@/lib/ebay';
 import { EbayApiError, toFriendly } from '@/lib/ebayErrors';
+import { explainIfUnmapped } from '@/lib/ebayFriendly';
 import { AuthError, authoriseEbayPost } from '@/lib/auth';
 
 export const maxDuration = 300;
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('ebay publish failed', error);
-    return Response.json(toFriendly(error, 'Publishing the listing'), { status: 500 });
+    const friendly = toFriendly(error, 'Publishing the listing');
+    return Response.json(
+      await explainIfUnmapped(friendly, error, { action: 'Publishing the listing' }),
+      { status: 500 },
+    );
   }
 }

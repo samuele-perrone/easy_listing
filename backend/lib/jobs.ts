@@ -3,12 +3,24 @@ import type { GenerateResult } from '@/lib/schema';
 
 export type JobStatus = 'pending' | 'ready' | 'failed';
 
+/** What an eBay post job produces. Mirrors the synchronous route's response. */
+export interface EbayJobResult {
+  offerId: string;
+  listingId?: string | null;
+  viewURL?: string | null;
+  /** False when the offer was only saved as a draft. */
+  published: boolean;
+}
+
 export interface JobState {
   status: JobStatus;
   startedAt: string;
   finishedAt?: string;
+  /** Set by a generation job. */
   result?: GenerateResult;
-  /** Seller-facing failure, same shape the synchronous route returns. */
+  /** Set by an eBay posting job. Jobs written before 16 Oct 2026 have neither. */
+  ebayResult?: EbayJobResult;
+  /** Seller-facing failure, same shape the synchronous routes return. */
   error?: string;
   fix?: string;
 }

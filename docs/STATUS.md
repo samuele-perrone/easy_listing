@@ -6,7 +6,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
 ## Running the tests
 
-    cd backend && npm test          # 162 tests — sign-in, the monthly allowance, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
+    cd backend && npm test          # 173 tests — sign-in, the monthly allowance, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
       -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
 
@@ -167,6 +167,38 @@ Two test-infra traps, both of which cost a round trip:
   `rejects.toThrow(AuthError)` then fails on the correct error. Assert on the
   message in those tests.
 
+## eBay posting explains itself, and runs in the background
+
+**Unmapped eBay errors get explained by a model** (16 Oct 2026). The table in
+`lib/ebayErrors.ts` still wins where it applies — free, instant, known-correct —
+but anything it has never seen used to show eBay's own message, which is
+frequently wrong about eBay's own error. 25019 claims the title "may contain
+improper words"; it has meant a miscategorised accessory once and a charger
+mentioned in a watch title once. Neither is what it says.
+
+`explainIfUnmapped()` (`lib/ebayFriendly.ts`) asks a model to read the raw
+payload and name the field to change, passing the listing title so it can quote
+the offending words back. Two deliberate properties:
+
+- **It cannot produce a second failure.** It runs inside a catch block that is
+  already handling one, so both it and `explainEbayError` swallow everything and
+  fall back to eBay's wording. A test asserts a throwing provider still returns
+  the original error.
+- **Short budget** — 12s chain, 8s per call. The seller is already looking at a
+  failed spinner; a better message is not worth another wait.
+
+**Posting runs as a background job** (`POST /api/ebay/post/start` → `jobId`,
+polled at `/api/ebay/status/<jobId>`), for the same reason generation does: the
+chain is inventory item → category → condition policy → aspects → policies →
+location → offer → publish, which can run past a minute. Leaving the app
+suspended it, the connection died, and the seller had no idea whether the item
+had gone live. `POST /api/ebay/post` is unchanged and still live, because builds
+already on phones call it.
+
+The job's `ebayResult` carries `published`, so a draft and a live listing are
+distinguishable without inspecting `listingId`. Photo upload happens *inside*
+the job — a dozen photos is itself slow enough not to make the phone wait.
+
 ## Spend is bounded server-side
 
 `/api/generate` and `/api/generate/start` refuse work past a daily allowance (`lib/usage.ts`), checked **before** generation starts — once a request reaches a paid model it has already cost money, so refusing afterwards would bound nothing.
@@ -241,7 +273,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 188 tests (162 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 199 tests (173 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
