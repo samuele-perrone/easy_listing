@@ -6,6 +6,7 @@
 import { chooseAspectValues, type CategoryAspect } from '@/lib/aspects';
 import { fitEbayTitle } from '@/lib/ebayTitle';
 import { EbayApiError } from '@/lib/ebayErrors';
+import { pickCategory } from '@/lib/ebayCategory';
 import { normaliseCondition, pickCondition, safeConditionWithoutPolicy } from '@/lib/ebayConditions';
 
 const ENV = process.env.EBAY_ENV === 'production' ? 'production' : 'sandbox';
@@ -254,8 +255,15 @@ export async function suggestCategory(
   );
   if (!suggestResponse.ok) throw new EbayApiError('Looking up the eBay category', await suggestResponse.text());
   const data = await suggestResponse.json();
-  const suggestion = data.categorySuggestions?.[0]?.category?.categoryId;
+  const suggestions = data.categorySuggestions ?? [];
+  const suggestion = pickCategory(suggestions, query);
   if (!suggestion) throw new Error(`No eBay category found for "${query}"`);
+  if (suggestion !== suggestions[0]?.category?.categoryId) {
+    console.log(
+      `eBay suggested ${suggestions[0]?.category?.categoryName} first for "${query}";` +
+        ` using ${suggestion} instead because the item reads as an accessory`,
+    );
+  }
   return { categoryId: suggestion, categoryTreeId };
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EbayApiError, describeEbayError, ebayErrorCode, toFriendly } from './ebayErrors';
+import { EbayApiError, describeEbayError, ebayErrorCode, ebayGuidance, toFriendly } from './ebayErrors';
 
 const ebayPayload = (errorId: number, message = 'Something terse', longMessage?: string) =>
   JSON.stringify({
@@ -64,5 +64,45 @@ describe('toFriendly', () => {
 
   it('handles a non-Error being thrown', () => {
     expect(toFriendly('kaboom', 'Creating the listing').error).toBe('Creating the listing failed.');
+  });
+});
+
+describe('25019 — miscategorised, not "improper words"', () => {
+  // The real payload from an Apple Watch band, 16 Oct 2026. eBay's message
+  // blames the wording; the actual reason is buried in `parameters`.
+  const RAW = JSON.stringify({ errors: [{
+    errorId: 25019,
+    domain: 'API_INVENTORY',
+    message: 'Cannot revise listing. The item cannot be listed or modified. The title or description may contain improper words, or the listing or seller may be in violation of eBay policy.',
+    parameters: [
+      { name: '0', value: '<p style=margin: 10px><font color=#333333>It looks like you&#39;re listing an accessory for a smart watch. Accessories should be listed in the Mobile Phones &amp; Communication&gt;Smart Watch Accessories categories.</font></p>' },
+      { name: '1', value: "It looks like you're listing an accessory for a smart watch. Accessories, including bundles that only include accessories, should be listed in the Mobile Phones & Communication>Smart Watch Accessories categories." },
+      { name: '2', value: 'LP_Miscat_SmartWatch_Accessories' },
+      { name: '3', value: '985549' },
+    ],
+  }] });
+
+  it('extracts the plain-text guidance, not the HTML copy or the rule name', () => {
+    const guidance = ebayGuidance(RAW)!;
+    expect(guidance).toContain('Smart Watch Accessories');
+    expect(guidance).not.toContain('<');
+    expect(guidance).not.toContain('LP_Miscat');
+    expect(guidance).not.toBe('985549');
+  });
+
+  it('stops telling the seller their words were improper', () => {
+    const friendly = describeEbayError(RAW, 'Publishing the listing');
+    expect(friendly.code).toBe(25019);
+    expect(friendly.error).not.toContain('improper words');
+    expect(friendly.error).toContain('category');
+    // Names the control to use *and* what eBay actually wants.
+    expect(friendly.fix).toContain('Category field');
+    expect(friendly.fix).toContain('Smart Watch Accessories');
+  });
+
+  it('still works when eBay sends no usable parameters', () => {
+    const bare = JSON.stringify({ errors: [{ errorId: 25019, message: 'nope' }] });
+    expect(ebayGuidance(bare)).toBeUndefined();
+    expect(describeEbayError(bare, 'Publishing').fix).toContain('Category field');
   });
 });

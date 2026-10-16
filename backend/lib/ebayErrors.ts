@@ -46,6 +46,10 @@ const EXPLANATIONS: Record<number, { error: string; fix?: string }> = {
     error: 'eBay rejected the postcode for your item location.',
     fix: 'It needs a full postcode, not just the first part.',
   },
+  25019: {
+    error: 'eBay wouldn’t accept this listing in that category.',
+    fix: 'Tap Edit on the Category field and use the wording eBay suggests below, then try again.',
+  },
   25021: {
     error: 'The condition isn’t valid for this eBay category.',
     fix: 'Tap Edit on the Condition field and choose a different one — "USED_EXCELLENT" works for most categories.',
@@ -66,6 +70,30 @@ export function ebayErrorCode(raw: string): number | undefined {
     const parsed = JSON.parse(raw);
     const id = parsed?.errors?.[0]?.errorId;
     return typeof id === 'number' ? id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The guidance eBay buries in `parameters` rather than in the message.
+ *
+ * Error 25019 is the clearest case: `message` and `longMessage` both say the
+ * title or description "may contain improper words", which is a guess and
+ * usually wrong. The actual reason — "this is a smart watch accessory, list it
+ * under Smart Watch Accessories" — sits in a parameter, alongside HTML copies
+ * of itself and an internal rule name. Pick the longest plain-text value: the
+ * HTML duplicates are longer but contain tags, and the rule name and numeric id
+ * are far shorter.
+ */
+export function ebayGuidance(raw: string): string | undefined {
+  try {
+    const parsed = JSON.parse(raw);
+    const values: string[] = (parsed?.errors?.[0]?.parameters ?? [])
+      .map((p: { value?: unknown }) => (typeof p.value === 'string' ? p.value : ''))
+      .filter((v: string) => v.length > 60 && !v.includes('<'));
+    if (!values.length) return undefined;
+    return values.sort((a, b) => b.length - a.length)[0].replace(/\s+/g, ' ').trim();
   } catch {
     return undefined;
   }
@@ -101,7 +129,18 @@ export function describeEbayError(raw: string, action: string): FriendlyError {
   const code = ebayErrorCode(raw);
   const known = code !== undefined ? EXPLANATIONS[code] : undefined;
 
-  if (known) return { ...known, detail: raw, code };
+  if (known) {
+    // eBay's own guidance, when it has any, is more use than ours: it names the
+    // category to move to. Append rather than replace, so the seller still gets
+    // told which control to use.
+    const guidance = ebayGuidance(raw);
+    return {
+      ...known,
+      fix: guidance ? `${known.fix ?? ''} eBay says: "${guidance}"`.trim() : known.fix,
+      detail: raw,
+      code,
+    };
+  }
 
   const message = ebayMessage(raw);
   return {
