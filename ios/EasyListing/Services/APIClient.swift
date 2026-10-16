@@ -247,6 +247,69 @@ struct APIClient {
         return try JSONDecoder().decode(EbayPostResponse.self, from: data)
     }
 
+    /// What an eBay posting job reports back while it runs and when it ends.
+    struct EbayJobStatus: Codable {
+        struct Result: Codable {
+            var offerId: String
+            var listingId: String?
+            var viewURL: String?
+            var published: Bool
+        }
+        var status: String
+        var ebayResult: Result?
+        var error: String?
+        var fix: String?
+
+        var isPending: Bool { status == "pending" }
+    }
+
+    /// Starts an eBay post and returns immediately with a job id to poll.
+    ///
+    /// The synchronous `postToEbay` holds a connection open for the whole eBay
+    /// chain, so leaving the app kills it and the seller never learns whether
+    /// their item went live. This hands the work to the server instead.
+    static func startEbayPost(
+        draft: EbayDraft,
+        photos: [Data],
+        accessToken: String,
+        publish: Bool,
+        sessionToken: String?
+    ) async throws -> String {
+        struct Body: Codable {
+            var accessToken: String
+            var publish: Bool
+            var draft: EbayDraft
+            var images: [String]
+        }
+        var request = URLRequest(url: baseURL.appending(path: "/api/ebay/post/start"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
+        request.timeoutInterval = 60
+        let images = await encodedImagesOffMain(
+            from: photos.compactMap { UIImage(data: $0) }, maxDimension: 1400, quality: 0.7
+        )
+        request.httpBody = try JSONEncoder().encode(
+            Body(accessToken: accessToken, publish: publish, draft: draft, images: images)
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response, accepting: [200, 202])
+
+        struct Started: Codable { var jobId: String }
+        return try JSONDecoder().decode(Started.self, from: data).jobId
+    }
+
+    /// Asks how an eBay post is getting on.
+    static func ebayPostStatus(jobId: String) async throws -> EbayJobStatus {
+        var request = URLRequest(url: baseURL.appending(path: "/api/ebay/status/\(jobId)"))
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.checkOK(data: data, response: response)
+        return try JSONDecoder().decode(EbayJobStatus.self, from: data)
+    }
+
     /// Publishes a previously saved eBay draft offer.
     static func publishEbayOffer(offerId: String, accessToken: String, sessionToken: String?) async throws -> EbayPostResponse {
         var request = URLRequest(url: baseURL.appending(path: "/api/ebay/publish"))

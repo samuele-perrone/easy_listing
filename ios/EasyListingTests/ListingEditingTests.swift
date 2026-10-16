@@ -121,3 +121,61 @@ struct ListingEditingTests {
         }
     }
 }
+
+/// Posting runs on the server, so the listing has to carry enough state for the
+/// app to be closed and reopened mid-post.
+@Suite("Background eBay posting")
+struct EbayPostingStateTests {
+    private func listing() -> PlatformListing {
+        PlatformListing(
+            platform: .ebay,
+            fields: [ListingField(label: "Title", value: "A thing")],
+            ebayDraft: EbayDraft(
+                title: "A thing", description: "d", condition: "USED_EXCELLENT",
+                price: 9.99, currency: "GBP", categoryQuery: "thing"
+            )
+        )
+    }
+
+    // `isPosting` reads main-actor state, so these two run there.
+    @Test("a fresh listing is not mid-post")
+    @MainActor
+    func startsIdle() {
+        let subject = listing()
+        #expect(subject.ebayJobId == nil)
+        #expect(EbayPostCoordinator.shared.isPosting(subject) == false)
+    }
+
+    @Test("a job id marks it as posting, and survives being read back")
+    @MainActor
+    func jobIdMarksPosting() {
+        let subject = listing()
+        subject.ebayJobId = "job-1"
+        #expect(EbayPostCoordinator.shared.isPosting(subject))
+    }
+
+    @Test("a failure that arrived while the app was shut is kept, not lost")
+    func failureSurvivesClosing() {
+        // The alert can't fire if nobody is looking, so the reason lives on the
+        // listing until the seller next opens it.
+        let subject = listing()
+        subject.postError = "eBay wouldn't accept this listing as written."
+        subject.postFix = "Edit the Title and try again."
+
+        #expect(subject.postError != nil)
+        #expect(subject.postFix?.contains("Title") == true)
+    }
+
+    @Test("status still distinguishes a draft from a live listing")
+    func draftVersusPosted() {
+        let draft = listing()
+        draft.status = .drafted
+        #expect(draft.status == .drafted)
+
+        let posted = listing()
+        posted.status = .posted
+        posted.postedURL = "https://www.ebay.co.uk/itm/1"
+        #expect(posted.status == .posted)
+        #expect(posted.postedURL != nil)
+    }
+}

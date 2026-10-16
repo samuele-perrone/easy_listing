@@ -152,6 +152,13 @@ final class PlatformListing {
     var postedAt: Date?
     var postedURL: String?
     var ebayOfferId: String?
+    /// Set while an eBay post is running on the server. Optional so listings
+    /// saved before background posting existed still load.
+    var ebayJobId: String?
+    /// Survives being closed, so a post that failed while the app was shut is
+    /// still explained when the seller next opens the item.
+    var postError: String?
+    var postFix: String?
     var item: Item?
 
     init(platform: Platform, fields: [ListingField], ebayDraft: EbayDraft? = nil) {

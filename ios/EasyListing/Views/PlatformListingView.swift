@@ -8,6 +8,7 @@ struct PlatformListingView: View {
     @Bindable var listing: PlatformListing
     let item: Item
 
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var ebayAuth = EbayAuthService.shared
     @StateObject private var auth = AuthService.shared
     @State private var copiedField: String?
@@ -62,6 +63,15 @@ struct PlatformListingView: View {
             Text("This will publish the listing LIVE on eBay under your connected account, visible to buyers immediately. This can't be undone from the app — you'd need to end the listing on eBay.")
         }
         .errorAlert($postError, title: "Couldn't list on eBay")
+        .task {
+            // A post can fail while the app is shut, so the reason is stored on
+            // the listing rather than only shown in a live alert.
+            if let message = listing.postError {
+                postError = APIClient.APIError(message: message, fix: listing.postFix)
+                listing.postError = nil
+                listing.postFix = nil
+            }
+        }
     }
 
     @ViewBuilder
@@ -120,7 +130,18 @@ struct PlatformListingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if isPosting {
+            if listing.ebayJobId != nil {
+                // The work is on the server now, so say so — the seller can
+                // close the app and the post still finishes.
+                VStack(spacing: 4) {
+                    ProgressView("Posting to eBay…")
+                    Text("You can close the app — we'll let you know when it's done.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            } else if isPosting {
                 ProgressView("Talking to eBay…")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
@@ -174,27 +195,19 @@ struct PlatformListingView: View {
         }
     }
 
+    /// Hands the post to the server and returns. The eBay chain regularly runs
+    /// past a minute, and holding a connection for it meant leaving the app
+    /// killed the request — with the seller unsure whether the item went live.
     private func post(publish: Bool) async {
-        guard let draft = listing.editedEbayDraft else { return }
         isPosting = true
         defer { isPosting = false }
         do {
-            let token = try await ebayAuth.validAccessToken()
-            let response = try await APIClient.postToEbay(
-                draft: draft,
+            try await EbayPostCoordinator.shared.start(
+                listing: listing,
                 photos: item.photosData,
-                accessToken: token,
                 publish: publish,
-                sessionToken: auth.sessionToken
+                context: modelContext
             )
-            listing.ebayOfferId = response.offerId
-            if publish {
-                listing.status = .posted
-                listing.postedAt = .now
-                listing.postedURL = response.viewURL
-            } else {
-                listing.status = .drafted
-            }
         } catch {
             postError = error as? APIClient.APIError ?? APIClient.APIError(message: error.localizedDescription)
         }

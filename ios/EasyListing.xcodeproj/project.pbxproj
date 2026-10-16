@@ -27,6 +27,7 @@
 		AF8FD0D4E30B5F891C2D3ABC /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC4EFA6DEDA2C8EC9487B6 /* AuthService.swift */; };
 		D04381176494D6A7C0F2F503 /* PlatformListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D3F10C893CA15111AD5668 /* PlatformListingView.swift */; };
 		D7D90656448881ACB581E6EE /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BE6627D3973C84FD16A37F /* CameraPicker.swift */; };
+		DCAF2BD94D2613222A9D815B /* EbayPostCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33C954BACD9841642453B00 /* EbayPostCoordinator.swift */; };
 		EAE410BAB8FE54F8CA534432 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD9261D20F8E83DBAF84714 /* APIClient.swift */; };
 		FD82253DD48636D62163074E /* ScreenshotSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2BD98F7AF491C1C58FDD62 /* ScreenshotSeed.swift */; };
 /* End PBXBuildFile section */
@@ -73,6 +74,7 @@
 		CD43A863659FA4C8E14D24EA /* EasyListingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyListingApp.swift; sourceTree = "<group>"; };
 		CE2BD98F7AF491C1C58FDD62 /* ScreenshotSeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSeed.swift; sourceTree = "<group>"; };
 		DEED068569C00772F8E7437F /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
+		E33C954BACD9841642453B00 /* EbayPostCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbayPostCoordinator.swift; sourceTree = "<group>"; };
 		F1BE6627D3973C84FD16A37F /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		F520AD7337592BEA88A3FA0D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FA57719E6ACBDDC7EC23CDFD /* NewItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewItemView.swift; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 				AAD9261D20F8E83DBAF84714 /* APIClient.swift */,
 				53BC4EFA6DEDA2C8EC9487B6 /* AuthService.swift */,
 				41B25CFF008F8C05AA188C62 /* EbayAuthService.swift */,
+				E33C954BACD9841642453B00 /* EbayPostCoordinator.swift */,
 				4F6280F8B3B220D76A650D00 /* GenerationCoordinator.swift */,
 				CCE494CA2C2ED8AC298E7EE2 /* Keychain.swift */,
 			);
@@ -281,6 +284,7 @@
 				D7D90656448881ACB581E6EE /* CameraPicker.swift in Sources */,
 				187CCD9E74756270D24DA9D8 /* EasyListingApp.swift in Sources */,
 				9EC4D879ED3E7282B9D02277 /* EbayAuthService.swift in Sources */,
+				DCAF2BD94D2613222A9D815B /* EbayPostCoordinator.swift in Sources */,
 				286A848D5DAD8BF44D211776 /* ErrorAlert.swift in Sources */,
 				69F61D124BF9BD494C32B073 /* GenerationCoordinator.swift in Sources */,
 				927D2E89676EB23ED7EE2EA8 /* HistoryView.swift in Sources */,

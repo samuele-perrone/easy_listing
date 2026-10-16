@@ -45,6 +45,7 @@ struct HistoryView: View {
                 // A job started before the app was closed is still running on
                 // the server; collect whatever finished while we were away.
                 await GenerationCoordinator.shared.resumePendingWork(context: modelContext)
+            await EbayPostCoordinator.shared.resumePendingWork(context: modelContext)
             }
         }
     }

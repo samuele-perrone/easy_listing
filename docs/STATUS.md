@@ -8,7 +8,7 @@ Where the project stands, what's left, and the non-obvious things already solved
 
     cd backend && npm test          # 173 tests — sign-in, the monthly allowance, error translation, condition normalisation and fallbacks, eBay title fitting, market-fit ranking, provider backoff and chain
     cd ios && xcodebuild test -project EasyListing.xcodeproj -scheme EasyListing \
-      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 26 tests
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'   # 30 tests
 
 `npm run deploy` (from `backend/`) runs typecheck and tests before deploying.
 
@@ -199,6 +199,24 @@ The job's `ebayResult` carries `published`, so a draft and a live listing are
 distinguishable without inspecting `listingId`. Photo upload happens *inside*
 the job — a dozen photos is itself slow enough not to make the phone wait.
 
+**iOS side** (`EbayPostCoordinator`, build 15): starts the job, stores
+`ebayJobId` on the listing, polls under a background-task assertion, and
+notifies on finish. `resumePendingWork` collects anything left running after a
+relaunch, alongside the generation one.
+
+Two details worth keeping:
+
+- **A failure is written to the listing, not just shown.** `postError` /
+  `postFix` persist, because a post can fail while the app is shut and an alert
+  nobody is looking at is lost. The detail view surfaces it on next open.
+- **A 404 from the status endpoint clears the job.** Otherwise a listing whose
+  job blob had expired would sit on "Posting…" forever. The message tells the
+  seller to check eBay first, because publishing can't be undone from the app.
+
+It is a sibling of `GenerationCoordinator`, not a shared generic: the two differ
+in what they write back, what the notification says, and what a failure means. A
+shared base class would have been mostly `if isEbay`.
+
 ## Spend is bounded server-side
 
 `/api/generate` and `/api/generate/start` refuse work past a daily allowance (`lib/usage.ts`), checked **before** generation starts — once a request reaches a paid model it has already cost money, so refusing afterwards would bound nothing.
@@ -273,7 +291,7 @@ Notably it succeeded on `gemini-3.5-flash-lite`'s **third retry** after two "hig
 - **Xcode Cloud is set up but unverified.** The workflow exists and `ci_scripts/ci_post_clone.sh` is in place; no build has been confirmed green yet. Note the `.xcodeproj` is now **committed** — Xcode Cloud validates the workflow's project reference before running the post-clone script, so generating it there was too late for the build to start at all. `project.yml` remains the source of truth; run `xcodegen generate` and commit the result after changing it.
 - **Provider ceiling.** 60 free generations a day (three models × 20), shared across every install. Fine for one seller; not enough for testers, and nowhere near a public release. `lib/backoff.ts` absorbs capacity blips and the chain routes around a model that's out, but nothing raises the ceiling except a paid key.
 - ~~**Long requests sometimes lose the connection.**~~ **Explained 25 Sep 2026.** The drops (measured at 60.41s, 60.37s, 60.37s, and twice at ~120s) were the client giving up while the function sat in a provider call that never returned — see the 300s timeout row in the gotchas table. With a per-call timeout in place, requests now complete in 15–18s and none have dropped. The budget is also capped under a minute now, because requests that ran past ~60s mostly didn't survive to answer.
-- **Test coverage is partial.** 199 tests (173 backend, 26 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
+- **Test coverage is partial.** 203 tests (173 backend, 30 iOS) cover the pure logic — field editing, price parsing, condition fallbacks, error translation. Anything touching eBay or the model is still verified by hand, since it needs live credentials.
 
 ---
 
