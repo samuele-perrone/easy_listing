@@ -94,15 +94,17 @@ describe('25019 — miscategorised, not "improper words"', () => {
     const friendly = describeEbayError(RAW, 'Publishing the listing');
     expect(friendly.code).toBe(25019);
     expect(friendly.error).not.toContain('improper words');
-    expect(friendly.error).toContain('category');
-    // Names the control to use *and* what eBay actually wants.
-    expect(friendly.fix).toContain('Category field');
+    // Two different causes share this id — a miscategorised accessory, and a
+    // smart watch whose title mentioned a charger — so the fix must not name a
+    // single control. eBay's own guidance is what tells them apart.
+    expect(friendly.fix).toContain('Title');
+    expect(friendly.fix).toContain('Category');
     expect(friendly.fix).toContain('Smart Watch Accessories');
   });
 
   it('still works when eBay sends no usable parameters', () => {
     const bare = JSON.stringify({ errors: [{ errorId: 25019, message: 'nope' }] });
     expect(ebayGuidance(bare)).toBeUndefined();
-    expect(describeEbayError(bare, 'Publishing').fix).toContain('Category field');
+    expect(describeEbayError(bare, 'Publishing').fix).toContain('Title');
   });
 });

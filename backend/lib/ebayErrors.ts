@@ -47,8 +47,13 @@ const EXPLANATIONS: Record<number, { error: string; fix?: string }> = {
     fix: 'It needs a full postcode, not just the first part.',
   },
   25019: {
-    error: 'eBay wouldn’t accept this listing in that category.',
-    fix: 'Tap Edit on the Category field and use the wording eBay suggests below, then try again.',
+    // Two different causes share this id, so the fix can't name one control.
+    // Seen once as a genuinely miscategorised accessory, and once as a smart
+    // watch whose title said "with Charger" — eBay bars mentioning accessories
+    // that normally come in the box. eBay's own guidance, appended below by
+    // `ebayGuidance`, is what distinguishes them.
+    error: 'eBay wouldn’t accept this listing as written.',
+    fix: 'Edit the Title, Category or the item details to match what eBay asks for below, then try again.',
   },
   25021: {
     error: 'The condition isn’t valid for this eBay category.',
