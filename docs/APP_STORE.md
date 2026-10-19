@@ -236,6 +236,76 @@ against an opaque provider id. That is stated above rather than hidden. If a
 reviewer still asks for it, the work is small: a "Delete my data" action that
 removes the account's usage markers and signs out.
 
+### Reply to App Review (for the 30 Sep 2026 rejection)
+
+Apple asked for this information **both** as a reply on the submission and in the
+Notes field. Structured against their six numbered points so a reviewer can tick
+them off. Attach the screen recording to the reply.
+
+    Thank you for the review. The information requested is below, and has also been
+    added to the Notes field in App Review Information.
+
+    A new build has been attached (build 14). The previously submitted build is no
+    longer compatible with our backend and should not be used for review.
+
+    1. SCREEN RECORDING
+    A screen recording captured on an iPhone running the latest iOS is attached. It
+    begins with launching the app and shows the typical flow: signing in, adding
+    photos, generating listings, and viewing the result for each marketplace.
+    There are no paid features or in-app purchases. There is no user-generated
+    content shared between users, so no reporting or blocking mechanism applies.
+    On account deletion: the app creates no profile. Sign-in is delegated to Apple
+    or Google, no password is stored, and the only server-side data is a count of
+    listings generated, held against the opaque account identifier the provider
+    returns. Signing out in Settings removes the session from the device. We are
+    happy to add an explicit deletion action if you would like one.
+
+    2. PURPOSE AND TARGET AUDIENCE
+    Easy Listing is for individuals in the UK selling their own second-hand items.
+    Writing a listing takes several minutes of typing per item, which is the main
+    reason people put off selling things. The app removes that step: you photograph
+    an item, and it returns a complete listing - title, description, condition,
+    category and a suggested price - written separately for eBay, Vinted, Gumtree
+    and Facebook Marketplace, because each site expects a different style. It also
+    ranks which marketplace is likely to pay most for that particular item.
+
+    3. SETTING UP AND ACCESSING THE MAIN FEATURES
+    Sign in with Apple or Google on first launch. Any account works and grants 10
+    free listings a month, so no demo credentials are needed. "Hide My Email" is
+    supported.
+    Then tap +, add one or more photos of any object, and tap Generate listings.
+    Generation takes 20-90 seconds and runs as a background job, so the item appears
+    in the list immediately and fills in when it is ready.
+    Connecting an eBay account is optional and only needed to post directly to eBay.
+    All other marketplaces use a copy-to-clipboard flow, because they have no public
+    seller API. Nothing is posted anywhere without explicit confirmation.
+
+    4. EXTERNAL SERVICES
+    - Google Gemini API and Anthropic Claude API: generate the listing text from the
+      submitted photos. Claude is used when Gemini is unavailable.
+    - Vercel: application hosting and temporary storage of the submitted photos.
+    - eBay Sell API: optional posting, using the seller's own eBay account via
+      eBay's OAuth flow. The seller's eBay tokens are stored only on their device.
+    - Sign in with Apple and Google Sign-In: authentication only.
+    There are no payment processors and no in-app purchases.
+
+    5. REGIONAL DIFFERENCES
+    None. The app behaves identically everywhere. Availability is set to the United
+    Kingdom only, in line with our non-trader declaration under the DSA.
+
+    6. REGULATED INDUSTRY OR PROTECTED THIRD-PARTY MATERIAL
+    Neither applies. The app is not in a regulated industry and includes no
+    protected third-party material. Marketplace names appear only as descriptive
+    references to where a listing can be used; the eBay integration uses eBay's
+    public Sell API under their standard developer terms, with each user
+    authorising their own account.
+
+**The recording must start with the app launching** — Apple states that
+explicitly, and it is the easiest thing to get wrong. `.mov` is not an accepted
+attachment type; convert to `.mp4` (`avconvert --source in.mov --preset
+Preset960x540 --output out.mp4`), which also brings a three-minute capture from
+~135 MB to ~47 MB.
+
 ### Screenshots to capture
 
 1. History screen with a few listed items — shows it's a real tool with state
