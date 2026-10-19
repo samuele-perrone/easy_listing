@@ -256,6 +256,130 @@ would have been a third rejection.
 
 ### Reply to App Review (for the 30 Sep 2026 rejection)
 
+Apple asked for this information **both** as a reply and in the Notes field.
+Structured against their six numbered points so a reviewer can tick them off.
+Attach the screen recording to the reply.
+
+**Both fields cap at 4000 characters, and the counter shown beside them is
+characters *remaining*, not used** — which is easy to misread as having far more
+room than you do. This reply is about 2933 characters and the Notes about 2500, so
+each fits on its own; pasting one on top of the other does not.
+
+    Thank you for the review. The information below is also in the Notes field.
+    Build 14 is now attached; the previously submitted build should not be used.
+
+    1. SCREEN RECORDING
+    Attached, captured on a physical iPhone running the latest iOS. It begins with
+    launching the app and shows the typical flow: signing in, adding photos,
+    generating listings, and viewing the result for each marketplace.
+    There are no paid features or in-app purchases, and no user-generated content
+    shared between users, so no reporting or blocking mechanism applies.
+    Account deletion: the app creates no profile. Sign-in is delegated to Apple or
+    Google, no password is stored, and the only server-side data is a count of
+    listings generated, held against the opaque account id the provider returns.
+    Signing out in Settings removes the session from the device. We are happy to add
+    an explicit deletion action if you would like one.
+
+    2. PURPOSE AND AUDIENCE
+    For individuals in the UK selling their own second-hand items. Writing a listing
+    takes several minutes of typing per item, which is why people put off selling
+    things. You photograph an item and the app returns a complete listing - title,
+    description, condition, category and suggested price - written separately for
+    eBay, Vinted, Gumtree and Facebook Marketplace, since each expects a different
+    style. It also ranks which marketplace is likely to pay most for that item.
+
+    3. SETTING UP AND USING IT
+    Sign in with Apple or Google on first launch. Any account works and grants 10
+    free listings a month, so no demo credentials are needed; "Hide My Email" is
+    supported. Then tap +, add photos of any object, and tap Generate listings.
+    Generation takes 20-90 seconds and runs as a background job, so the item appears
+    in the list immediately and fills in when ready.
+    Connecting an eBay account is optional and only needed to post directly to eBay.
+    The other marketplaces use a copy-to-clipboard flow, as they have no public
+    seller API. Nothing is posted anywhere without explicit confirmation.
+
+    4. EXTERNAL SERVICES
+    - Google Gemini and Anthropic Claude: generate the listing text from the photos.
+      Claude is used when Gemini is unavailable.
+    - Vercel: hosting and temporary storage of the submitted photos.
+    - eBay Sell API: optional posting, using the seller's own eBay account via
+      eBay's OAuth flow. eBay tokens are stored only on the seller's device.
+    - Sign in with Apple and Google Sign-In: authentication only.
+    No payment processors and no in-app purchases.
+
+    5. REGIONAL DIFFERENCES
+    None; the app behaves identically everywhere. Availability is the United Kingdom
+    only, in line with our non-trader declaration under the DSA.
+
+    6. REGULATED INDUSTRY OR PROTECTED MATERIAL
+    Neither applies. Marketplace names appear only as descriptive references to
+    where a listing can be used; the eBay integration uses eBay's public Sell API
+    under their standard developer terms, with each user authorising their own
+    account.
+
+**The recording must start with the app launching** — Apple states that
+explicitly, and it is the easiest thing to get wrong. `.mov` is not an accepted
+attachment type; convert to `.mp4` (`avconvert --source in.mov --preset
+Preset960x540 --output out.mp4`), which also brings a three-minute capture from
+~135 MB to ~47 MB.
+
+### App Review notes
+
+Goes in **App Review Information → Notes**. Apple asked for this information in
+the Notes field *as well as* in the reply, "for reference on future
+submissions" — so this is the standing version, without the reply's opener and
+build note. Keep it in step with how the app actually behaves: it claimed
+"sign-in is not required" for two days after sign-in became mandatory, which
+would have been a third rejection.
+
+    WHAT THE APP IS FOR
+    Easy Listing is for individuals in the UK selling their own second-hand items.
+    Writing a listing takes several minutes of typing per item, which is the main
+    reason people put off selling things. You photograph an item and the app returns
+    a complete listing - title, description, condition, category and a suggested
+    price - written separately for eBay, Vinted, Gumtree and Facebook Marketplace,
+    because each site expects a different style. It also ranks which marketplace is
+    likely to pay most for that particular item.
+
+    HOW TO USE IT
+    Sign in with Apple or Google on first launch. Any account works and grants 10
+    free listings a month, so there is no demo account to request. "Hide My Email"
+    is supported.
+    Then tap +, add one or more photos of any object, and tap Generate listings.
+    Generation takes 20-90 seconds and runs as a background job, so the item appears
+    in the list immediately and fills in when it is ready.
+    Connecting an eBay account is optional and only needed to post directly to eBay.
+    All other marketplaces use a copy-to-clipboard flow, because they have no public
+    seller API. Nothing is posted anywhere without explicit confirmation.
+
+    EXTERNAL SERVICES
+    - Google Gemini API and Anthropic Claude API: generate the listing text from the
+      submitted photos. Claude is used when Gemini is unavailable.
+    - Vercel: application hosting and temporary storage of the submitted photos.
+    - eBay Sell API: optional posting, using the seller's own eBay account via
+      eBay's OAuth flow. The seller's eBay tokens are stored only on their device.
+    - Sign in with Apple and Google Sign-In: authentication only.
+    There are no payment processors and no in-app purchases.
+
+    ACCOUNTS AND DATA
+    The app creates no profile. Sign-in is delegated to Apple or Google, no password
+    is stored, and the only server-side data is a count of listings generated, held
+    against the opaque account identifier the provider returns - never the email.
+    Signing out in Settings removes the session from the device. There is therefore
+    no account-deletion flow; we are happy to add an explicit one if required.
+
+    REGIONS
+    The app behaves identically everywhere. Availability is set to the United
+    Kingdom only, in line with our non-trader declaration under the DSA.
+
+    REGULATED INDUSTRY OR PROTECTED MATERIAL
+    Neither applies. Marketplace names appear only as descriptive references to
+    where a listing can be used; the eBay integration uses eBay's public Sell API
+    under their standard developer terms, with each user authorising their own
+    account.
+
+### Reply to App Review (for the 30 Sep 2026 rejection)
+
 Apple asked for this information **both** as a reply on the submission and in the
 Notes field. Structured against their six numbered points so a reviewer can tick
 them off. Attach the screen recording to the reply.
