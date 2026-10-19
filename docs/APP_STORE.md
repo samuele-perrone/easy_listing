@@ -201,40 +201,58 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
 
 ### App Review notes
 
-Paste verbatim. Covers Apple's points 2–5 from the 30 Sep rejection, and
-pre-empts the account-deletion question in point 1.
+Goes in **App Review Information → Notes**. Apple asked for this information in
+the Notes field *as well as* in the reply, "for reference on future
+submissions" — so this is the standing version, without the reply's opener and
+build note. Keep it in step with how the app actually behaves: it claimed
+"sign-in is not required" for two days after sign-in became mandatory, which
+would have been a third rejection.
 
-    Sign in with Apple or Google on first launch — any account works, and it grants
-    10 free listings a month. There is no demo account to request, and "Hide My
-    Email" works fine.
+    WHAT THE APP IS FOR
+    Easy Listing is for individuals in the UK selling their own second-hand items.
+    Writing a listing takes several minutes of typing per item, which is the main
+    reason people put off selling things. You photograph an item and the app returns
+    a complete listing - title, description, condition, category and a suggested
+    price - written separately for eBay, Vinted, Gumtree and Facebook Marketplace,
+    because each site expects a different style. It also ranks which marketplace is
+    likely to pay most for that particular item.
 
-    Then tap +, add photos of any object, and tap Generate listings. Generation
-    takes 20-90 seconds and runs as a background job, so the item appears in the
-    list immediately and fills in when it is ready.
+    HOW TO USE IT
+    Sign in with Apple or Google on first launch. Any account works and grants 10
+    free listings a month, so there is no demo account to request. "Hide My Email"
+    is supported.
+    Then tap +, add one or more photos of any object, and tap Generate listings.
+    Generation takes 20-90 seconds and runs as a background job, so the item appears
+    in the list immediately and fills in when it is ready.
+    Connecting an eBay account is optional and only needed to post directly to eBay.
+    All other marketplaces use a copy-to-clipboard flow, because they have no public
+    seller API. Nothing is posted anywhere without explicit confirmation.
 
-    Connecting an eBay account is optional and only needed for posting directly to
-    eBay. Vinted, Gumtree and Facebook Marketplace use a copy-to-clipboard flow
-    because they have no public seller API.
+    EXTERNAL SERVICES
+    - Google Gemini API and Anthropic Claude API: generate the listing text from the
+      submitted photos. Claude is used when Gemini is unavailable.
+    - Vercel: application hosting and temporary storage of the submitted photos.
+    - eBay Sell API: optional posting, using the seller's own eBay account via
+      eBay's OAuth flow. The seller's eBay tokens are stored only on their device.
+    - Sign in with Apple and Google Sign-In: authentication only.
+    There are no payment processors and no in-app purchases.
 
-    External services: Google Gemini and Anthropic Claude generate the listing text
-    from the photos; Vercel provides hosting and temporary image storage; the eBay
-    Sell API is used only for optional posting. This is described in the privacy
-    policy.
+    ACCOUNTS AND DATA
+    The app creates no profile. Sign-in is delegated to Apple or Google, no password
+    is stored, and the only server-side data is a count of listings generated, held
+    against the opaque account identifier the provider returns - never the email.
+    Signing out in Settings removes the session from the device. There is therefore
+    no account-deletion flow; we are happy to add an explicit one if required.
 
-    The app stores no password and creates no profile of its own. The only thing
-    kept server-side is a count of listings generated, against the opaque account
-    id the sign-in provider returns — never the email. Signing out in Settings
-    removes the session from the device.
+    REGIONS
+    The app behaves identically everywhere. Availability is set to the United
+    Kingdom only, in line with our non-trader declaration under the DSA.
 
-    The app behaves identically in all regions. Availability is the United Kingdom
-    only, because of the non-trader declaration.
-
-**Known risk: account deletion.** Apple requires a deletion path in apps that
-support account *creation*. This app creates no profile — sign-in is delegated,
-no password is stored, and the only server-side data is a generation count
-against an opaque provider id. That is stated above rather than hidden. If a
-reviewer still asks for it, the work is small: a "Delete my data" action that
-removes the account's usage markers and signs out.
+    REGULATED INDUSTRY OR PROTECTED MATERIAL
+    Neither applies. Marketplace names appear only as descriptive references to
+    where a listing can be used; the eBay integration uses eBay's public Sell API
+    under their standard developer terms, with each user authorising their own
+    account.
 
 ### Reply to App Review (for the 30 Sep 2026 rejection)
 
