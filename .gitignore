@@ -4,6 +4,7 @@
 # ci_post_clone.sh, so a repo without it can't start a build.
 **/xcuserdata/
 ios/build/
+ios/build-release/
 ios/DerivedData/
 .vercel
 .env*
