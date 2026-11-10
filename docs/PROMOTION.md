@@ -44,6 +44,12 @@ current the same way as `STATUS.md`: what's been posted where, and what happened
 | 5 | Small UK reseller creators (5k–50k) | not started | Offer unlimited listings via `UNLIMITED_ACCOUNTS` env var. |
 | 6 | Apple Search Ads (UK, exact match) | not started | ~£5/day test. Bid on terms like "vinted listing", "resell". |
 
+**Reddit can't be read by Claude.** The Chrome extension refuses reddit.com
+("not allowed due to safety restrictions") and Claude Code's web fetcher is
+blocked from it too (checked 10 Nov 2026). Rule checks and posting on Reddit are
+manual: open `reddit.com/r/<sub>/about/rules` yourself, or paste the rules into
+the session.
+
 ## Draft posts — edit before use, check each community's rules first
 
 ### r/vinted / r/eBayUK
