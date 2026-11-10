@@ -16,7 +16,8 @@ current the same way as `STATUS.md`: what's been posted where, and what happened
 - **Every user costs money.** ~40p per active user per month at Anthropic rates.
   Before any push: the Anthropic spend limit ($15/month as of 29 Sep) must be
   raised to match expected traffic, or generation stops for everyone mid-launch.
-  `DAILY_LIMIT_TOTAL` is 1000 since 10 Nov.
+  `DAILY_LIMIT_TOTAL` is 200 (raised to 1000 and reverted on 10 Nov — too
+  early to predict traffic). Watch for it firing once posts go out.
 - **No ratings yet** (0 on 10 Nov). 1.0.1 adds an in-app rating prompt; it is
   `WAITING_FOR_REVIEW`. Promotion lands better once it's live.
 
