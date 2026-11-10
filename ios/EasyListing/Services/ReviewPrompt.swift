@@ -31,7 +31,9 @@ enum ReviewPrompt {
     @MainActor
     static func consume(readyItems: Int, postedToEbay: Bool, defaults: UserDefaults = .standard) -> Bool {
         // The screenshot run uses seeded items that would otherwise qualify.
-        guard !ScreenshotSeed.isRequested else { return false }
+        // Read the argument directly: `ScreenshotSeed` is `#if DEBUG` and
+        // doesn't exist in the Release build.
+        guard !ProcessInfo.processInfo.arguments.contains("-seedScreenshotData") else { return false }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         guard shouldAsk(
             readyItems: readyItems,
