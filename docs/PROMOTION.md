@@ -47,10 +47,10 @@ current the same way as `STATUS.md`: what's been posted where, and what happened
 
 ### r/vinted / r/eBayUK
 
-**Title:** I got fed up typing listings, so I built an app that writes them from photos — looking for honest feedback
+**Title:** I built an app that writes them from photos — looking for honest feedback
 
-> I sell a lot of bits on Vinted and eBay and the slowest part is always writing
-> the listing. So I built an iPhone app that does it: take a few photos and it
+> [YOUR OWN REASON — e.g. how much you sell and what annoyed you; keep it true]
+> The slowest part of selling is always writing the listing. So I built an iPhone app that does it: take a few photos and it
 > writes the title, description, condition and a suggested price for Vinted,
 > eBay, Gumtree and FB Marketplace — each in the style that site expects, and it
 > tells you which one your item is likely to sell best on.
@@ -65,7 +65,7 @@ current the same way as `STATUS.md`: what's been posted where, and what happened
 
 ### r/SideProject / r/iOSApps
 
-**Title:** Launched my first iOS app: photos in, marketplace listings out (SwiftUI + Next.js on Vercel)
+**Title:** Launched an iOS app: photos in, marketplace listings out (SwiftUI + Next.js on Vercel)
 
 > Easy Listing turns photos of something you want to sell into finished listings
 > for eBay, Vinted, Gumtree and Facebook Marketplace, and posts directly to eBay
