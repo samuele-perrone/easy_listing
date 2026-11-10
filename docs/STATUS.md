@@ -444,7 +444,7 @@ Note for testing build 3: the recommendation card only appears on items generate
 
 Two steps that are easy to miss, both of which cost time here: a tester has to be **added to an internal group** (creating the group isn't enough — the group's Invites column reads `–` until someone is in it), and a newly-added tester takes **a few minutes to appear** in the TestFlight app. Use an **Internal** group; external ones need Beta App Review first.
 
-To ship a new build: bump `CURRENT_PROJECT_VERSION` in `ios/project.yml`, then `cd ios && ./release.sh` (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
+To ship a new build: `cd ios && ./release.sh` — export assigns the build number (see below), so there's nothing to bump for a build. For a new **App Store version**, bump `MARKETING_VERSION` in `ios/project.yml` (1.0.1 since 10 Nov 2026, for the rating prompt). Until then `Info.plist` held a literal `1.0`, so `MARKETING_VERSION` was ignored exactly the way `CURRENT_PROJECT_VERSION` is; it now reads `$(MARKETING_VERSION)`. (needs `ASC_KEY_ID` and `ASC_ISSUER_ID` exported; the `.p8` lives in `~/.appstoreconnect/private_keys/`).
 
 **`UPLOAD SUCCEEDED with no errors` is not proof the build arrived.** On 29 Sep 2026 two consecutive build 9 uploads printed that line and exited 0, while the log also carried `CHANGE UPLOAD STATE TO COMPLETE (…): received status code 500` from Apple — and the build never appeared in App Store Connect at all. Archive and export were clean both times; it was an Apple-side outage.
 

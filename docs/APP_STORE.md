@@ -195,6 +195,10 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
 
 **Recommendation:** submit with the safe version. Keywords can be changed in a later release; a trademark rejection delays the whole review.
 
+### What's New (1.0.1)
+
+    Clearer, faster selling: small fixes and polish throughout. If Easy Listing saves you time, you can now leave a rating from inside the app — it helps other sellers find it.
+
 ### What's New (first release)
 
     First release. Photograph an item, get finished listings for eBay, Vinted, Gumtree and Facebook Marketplace, and post straight to eBay.
