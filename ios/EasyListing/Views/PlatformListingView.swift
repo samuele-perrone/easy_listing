@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import StoreKit
 
 /// Shows one platform's generated listing: tap-to-copy fields, plus either the
 /// guided copy-paste flow (Vinted / Gumtree / FB Marketplace) or real API
@@ -9,6 +10,7 @@ struct PlatformListingView: View {
     let item: Item
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.requestReview) private var requestReview
     @StateObject private var ebayAuth = EbayAuthService.shared
     @StateObject private var auth = AuthService.shared
     @State private var copiedField: String?
@@ -63,6 +65,12 @@ struct PlatformListingView: View {
             Text("This will publish the listing LIVE on eBay under your connected account, visible to buyers immediately. This can't be undone from the app — you'd need to end the listing on eBay.")
         }
         .errorAlert($postError, title: "Couldn't list on eBay")
+        .onChange(of: listing.status) { _, status in
+            // Going live is the clearest moment the app has earned a rating.
+            if status == .posted, ReviewPrompt.consume(readyItems: 0, postedToEbay: true) {
+                requestReview()
+            }
+        }
         .task {
             // A post can fail while the app is shut, so the reason is stored on
             // the listing rather than only shown in a live alert.

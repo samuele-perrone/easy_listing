@@ -26,10 +26,9 @@ export default function Support() {
 
       <h2>Common problems</h2>
 
-      <h3>&ldquo;Today&apos;s listing generations have run out&rdquo;</h3>
+      <h3>&ldquo;You&apos;ve used your free listings this month&rdquo;</h3>
       <p>
-        There&apos;s a daily limit on how many listings can be generated. It resets each day — try
-        again tomorrow.
+        Each account gets 10 free listings a calendar month. The allowance resets on the 1st.
       </p>
 
       <h3>Listing generation failed</h3>

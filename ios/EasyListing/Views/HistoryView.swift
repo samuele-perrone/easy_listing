@@ -1,11 +1,13 @@
 import SwiftUI
 import SwiftData
+import StoreKit
 
 struct HistoryView: View {
     @Query(sort: \Item.createdAt, order: .reverse) private var items: [Item]
     @Environment(\.modelContext) private var modelContext
     @State private var showingNewItem = false
     @State private var showingSettings = false
+    @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         NavigationStack {
@@ -45,8 +47,23 @@ struct HistoryView: View {
                 // A job started before the app was closed is still running on
                 // the server; collect whatever finished while we were away.
                 await GenerationCoordinator.shared.resumePendingWork(context: modelContext)
-            await EbayPostCoordinator.shared.resumePendingWork(context: modelContext)
+                await EbayPostCoordinator.shared.resumePendingWork(context: modelContext)
             }
+            .onAppear(perform: askForReviewIfEarned)
+        }
+    }
+}
+
+extension HistoryView {
+    /// Runs on every return to the list, which is the calm moment after an
+    /// item is finished. `ReviewPrompt` keeps it to once per version.
+    private func askForReviewIfEarned() {
+        let ready = items.filter { $0.generationState == .ready }.count
+        guard ReviewPrompt.consume(readyItems: ready, postedToEbay: false) else { return }
+        Task {
+            // Let the pop animation finish first, or the sheet lands mid-transition.
+            try? await Task.sleep(for: .seconds(1))
+            requestReview()
         }
     }
 }
