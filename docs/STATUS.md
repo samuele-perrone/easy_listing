@@ -78,7 +78,7 @@ readable message when the caller isn't signed in or isn't on the list.
   calendar month. **This is the limit people actually meet**, so it is the one
   that has to be explainable: "you've used your 10 free listings this month" is
   something a seller can plan around.
-- `DAILY_LIMIT_TOTAL` (200) — a **circuit breaker**, not a product rule. Set it
+- `DAILY_LIMIT_TOTAL` (1000 since 10 Nov 2026, was 200) — a **circuit breaker**, not a product rule. Set it
   well above normal use: when it fires, somebody who has done nothing wrong is
   turned away for a reason they can neither see nor fix, so its message is
   worded as ours ("Easy Listing is over capacity right now… this is on our side,
@@ -226,7 +226,7 @@ shared base class would have been mostly `if isEbay`.
 Two ceilings, and they do different jobs:
 
 - `DAILY_LIMIT_PER_INSTALL` (30) counts against an install id the app sends in `x-install-id`. That id is a random UUID in the Keychain — in the Keychain so a delete-and-reinstall doesn't hand out a fresh allowance, and random so it says nothing about the device or the person. It is **not a secret**: anyone can invent one, or send a new one per request. It shapes honest use; it does not stop abuse.
-- `DAILY_LIMIT_TOTAL` (200) is what actually bounds the bill, because it holds however many ids a caller invents.
+- `DAILY_LIMIT_TOTAL` (1000) is what actually bounds the bill, because it holds however many ids a caller invents.
 
 Requests with no id share one bucket named `unidentified`, which covers builds shipped before the header existed and anything hitting the endpoint with curl. `normaliseInstallId()` strips the id to `[A-Za-z0-9_-]` and 64 chars, because it lands in a blob path and a caller could otherwise choose their own storage layout.
 
@@ -237,6 +237,8 @@ Verified live 29 Sep 2026 with the per-install limit temporarily set to 3: three
 **This does not replace a spend limit on the provider key.** Code can be wrong; a ceiling set in the Anthropic console cannot be argued with. Set both — a **$15/month** organisation limit is in place as of 29 Sep 2026.
 
 The two ceilings don't currently agree, deliberately. A generation with four photos and the full response is roughly 3–5p on Sonnet, so `DAILY_LIMIT_TOTAL` of 200 is about £8 of paid calls in a day — enough to exhaust a $15 month in two bad days. That's accepted for now, on the reasoning that the spend limit is a hard stop and the free models serve most traffic anyway, so the realistic failure is the app pausing rather than overspending. If real traffic arrives, lower `DAILY_LIMIT_TOTAL` (60 caps a worst-case day near £2.50) or raise the spend limit — the point is to pick which one gives way first, rather than find out.
+
+**Raised to 1000 on 10 Nov 2026, ahead of promotion**, so a post that lands well doesn't turn every new user away by mid-afternoon. That inverts the trade above: a worst-case day is now ~£30–40 of paid calls, so **the Anthropic spend limit, not this cap, is what gives way first** — and when it does, generation fails for everyone until the month rolls over or the limit is raised. Raise the spend limit to match the traffic you expect, or this cap is decorative.
 
 Known housekeeping: usage markers are never deleted, like job blobs.
 
