@@ -197,7 +197,9 @@ Riskier but higher-intent version — third-party names in keywords can trigger 
 
 ### What's New (1.0.1)
 
-    Clearer, faster selling: small fixes and polish throughout. If Easy Listing saves you time, you can now leave a rating from inside the app — it helps other sellers find it.
+    Posting to eBay now carries on in the background. Close the app whenever you like — you'll get a notification when your item is live, or a clear reason if eBay turned it down.
+
+    Easy Listing may also ask for a rating once it's done its job for you. It helps other sellers find the app.
 
 ### What's New (first release)
 
